@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Clientes (PDF)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 30px;
+        }
+        h1 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            text-align: left;
+            padding: 8px;
+        }
+        td {
+            padding: 8px;
+            border-top: 1px solid #ddd;
+        }
+        .ativo {
+            color: green;
+            font-weight: bold;
+        }
+        .inativo {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-5x1 mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2x1 font-bold border-b pb-2">📋 Relatório de Clientes</h1>
+            <a href="?export=pdf"
+               class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded shadow">
+               📄 Exportar PDF
+            </a>
+        </div>
+        <table class="min-w-full table-auto border border-gray-300">
+            <thead>
+                <tr class="bg-blue-600 text-white">
+                    <th class="px-4 py-2">#</th>
+                    <th class="px-4 py-2 text-left">Nome</th>
+                    <th class="px-4 py-2 text-left">CNPJ</th>
+                    <th class="px-4 py-2 text-left">Email</th>
+                    <th class="px-4 py-2">Ativo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cliente in clientes %}
+                <tr class="border-t hover:bg-gray-100">
+                    <td class="px-4 py-2 text-center">{{ forloop.counter }}</td>
+                    <td class="px-4 py-2">{{ cliente.nome }}</td>
+                    <td class="px-4 py-2">{{ cliente.cnpj }}</td>
+                    <td class="px-4 py-2">{{ cliente.email }}</td>
+                    <td class="px-4 py-2 text-center">
+                        {% if cliente.ativo %}
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Sim</span>
+                        {% else %}
+                        <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">Não</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-4 py-2 text-center text-gray-500">Nenhum cliente cadastrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

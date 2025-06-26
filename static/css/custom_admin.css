@@ -1,0 +1,10 @@
+/* Cabeçalho azul escuro */
+.navbar {
+    background-color: #1E3A8A !important;
+}
+
+/* Texto do cabeçalho */
+.navbar .navbar-brand,
+.navbar .navbar-nav > li > a {
+    color: #fff !important;
+}

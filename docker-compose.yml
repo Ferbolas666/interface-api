@@ -1,0 +1,32 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres-bd
+    restart: always
+    environment:
+      POSTGRES_DB: bd_sup
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: senha4253
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    container_name: interface-django
+    depends_on:
+      - db
+    volumes:
+      - static_volume:/app/staticfiles
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: python manage.py runserver 0.0.0.0:8000
+
+volumes:
+  pgdata:
+  static_volume:

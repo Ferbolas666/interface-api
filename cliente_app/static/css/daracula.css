@@ -1,0 +1,184 @@
+/* ====== CORE ====== */
+body, html {
+    background-color: #282a36 !important;
+    color: #f8f8f2 !important;
+}
+
+/* ====== CONTAINER E BLOCOS ====== */
+#container,
+#content,
+.module,
+.dashboard .dashboard-module,
+.dashboard #content,
+.app-dashboard .module {
+    background-color: #282a36 !important;
+    color: #f8f8f2 !important;
+}
+
+/* ====== HEADERS E BARRAS ====== */
+#header,
+.navbar,
+.module caption,
+fieldset.module > h2,
+.dashboard h1,
+.dashboard h2 {
+    background-color: #21222c !important;
+    color: #bd93f9 !important;
+    border: none !important;
+}
+
+/* ====== MÓDULOS (boxes brancos) ====== */
+.dashboard-module,
+.module,
+.dashboard-module .module {
+    background-color: #44475a !important;
+    border: 1px solid #6272a4 !important;
+}
+
+/* ====== TABELAS ====== */
+table,
+th,
+td {
+    background-color: #44475a !important;
+    color: #f8f8f2 !important;
+    border-color: #6272a4 !important;
+}
+
+/* ====== LINKS ====== */
+a, a:visited {
+    color: #8be9fd !important;
+}
+a:hover {
+    color: #ff79c6 !important;
+}
+
+/* ====== BOTÕES ====== */
+input[type="submit"],
+input[type="button"],
+.button,
+.default {
+    background-color: #50fa7b !important;
+    color: #282a36 !important;
+    border: none;
+}
+input[type="submit"]:hover,
+input[type="button"]:hover,
+.button:hover {
+    background-color: #8be9fd !important;
+    color: #282a36 !important;
+}
+
+/* ====== INPUTS ====== */
+input,
+textarea,
+select {
+    background-color: #44475a !important;
+    color: #f8f8f2 !important;
+    border: 1px solid #6272a4 !important;
+}
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: #bd93f9 !important;
+}
+
+/* ====== TIMELINE DE AÇÕES ====== */
+.timeline,
+.timeline .item {
+    background-color: #44475a !important;
+    color: #f8f8f2 !important;
+    border: none;
+}
+.timeline .item .timestamp {
+    color: #6272a4 !important;
+}
+.timeline .item strong {
+    color: #f1fa8c !important;
+}
+.timeline .item a {
+    color: #8be9fd !important;
+}
+
+/* ====== DRACULA TOTAL DARK DASHBOARD FIX ====== */
+
+/* Corrige fundo do topo e breadcrumb */
+#content, .breadcrumbs, .content, .main, .colMS {
+    background-color: #21222c !important;
+    color: #f8f8f2 !important;
+}
+
+/* Fundo da barra de título do h1 e breadcrumb */
+#content h1, .breadcrumbs {
+    background-color: #282a36 !important;
+    color: #bd93f9 !important;
+    border-bottom: 1px solid #44475a !important;
+}
+
+/* Fundo dos cards da dashboard */
+.dashboard-module, .dashboard .module {
+    background-color: #44475a !important;
+    border: 1px solid #44475a !important;
+    box-shadow: none !important;
+}
+
+/* Título das caixas ("Autenticação e Autorização", "Cliente_App") */
+.dashboard .module caption {
+    background-color: #282a36 !important;
+    color: #f8f8f2 !important;
+    font-weight: bold !important;
+}
+
+/* Fundo das linhas da tabela */
+.dashboard .module table tr {
+    background-color: #44475a !important;
+}
+
+/* Links internos da dashboard */
+.dashboard .module table a {
+    color: #8be9fd !important;
+}
+
+/* Botões Adicionar / Modificar */
+.module table a.button, .object-tools a, input[type="submit"], input[type="button"] {
+    background-color: #50fa7b !important;
+    color: #282a36 !important;
+    border: none !important;
+}
+
+/* Hover dos botões */
+.module table a.button:hover, .object-tools a:hover,
+input[type="submit"]:hover, input[type="button"]:hover {
+    background-color: #ffb86c !important;
+    color: #282a36 !important;
+}
+
+/* Corrige cor do link do breadcrumb */
+.breadcrumbs a {
+    color: #8be9fd !important;
+}
+
+/* --------------------------
+   CORRIGE CABEÇALHOS (captions)
+--------------------------- */
+.dashboard .module caption,
+caption {
+    background-color: #282a36 !important;
+    color: #f8f8f2 !important;
+    font-weight: bold;
+    border-bottom: 1px solid #44475a;
+    padding: 10px 15px;
+    text-transform: uppercase;
+}
+
+/* --------------------------
+   CORRIGE O RODAPÉ (footer)
+--------------------------- */
+#footer, .footer {
+    background-color: #282a36 !important;
+    color: #f8f8f2 !important;
+    border-top: 1px solid #44475a;
+    padding: 10px;
+    text-align: center;
+    font-size: 12px;
+}

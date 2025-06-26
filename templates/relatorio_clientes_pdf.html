@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <title>Relatório de Clientes (PDF)</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                padding: 30px;
+            }
+
+            h1 {
+                font-size: 20px;
+                margin-bottom: 20px;
+                border-bottom: 2px solid #007bff;
+                padding-bottom: 5px;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 14px;
+            }
+
+            th {
+                background-color: #007bff;
+                color: white;
+                text-align: left;
+                padding: 8px;
+            }
+
+            td {
+                padding: 8px;
+                border-top: 1px solid #ddd;
+            }
+
+            .ativo {
+                color: green;
+                font-weight: bold;
+            }
+
+            .inativo {
+                color: red;
+                font-weight: bold;
+            }
+
+        </style>
+    </head>
+    <body>
+        <h1>📋 Relatorio de Clientes</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Nome</th>
+                    <th>CNPJ</th>
+                    <th>Email</th>
+                    <th>Ativo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cliente in clientes %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ cliente.nome }}</td>
+                    <td>{{ cliente.cnpj }}</td>
+                    <td>{{ cliente.email }}</td>
+                    <td>
+                        {% if cliente.ativo %}
+                        <span class="ativo">Sim</span>
+                        {% else %}
+                        <span class="inativo">Não</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #666;">Nenhum cliente cadastrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </body>
+</html>

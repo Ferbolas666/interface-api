@@ -1,0 +1,6 @@
+Django>=4.2
+django-jazzmin
+requests
+weasyprint
+psycopg2-binary
+django-tabbed-admin
