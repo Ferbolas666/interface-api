@@ -1,0 +1,491 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+<!-- Modal para escolher o usuário -->
+<div class="modal fade" id="modalEscolherUsuario" tabindex="-1" aria-labelledby="modalEscolherUsuarioLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-3">
+      <form id="formEscolherUsuario">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="modalEscolherUsuarioLabel">Selecione o Usuário</h5>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="usuarioSelecionado" class="form-label">Usuário:</label>
+            <select class="form-select" id="usuarioSelecionado" name="usuarioSelecionado" required>
+              <option value="">-- Escolha --</option>
+              {% for usuario in cliente.sec_users.all %}
+                {% if usuario.active %}
+                  <option value="{{ usuario.id }}">{{ usuario.login }} - {{ usuario.name }}</option>
+                {% endif %}
+              {% empty %}
+                <option diabled>⚠️ Nenhum usuário ativo encontrado</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="submit" class="btn btn-success w-100 rounded-pill">Continuar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<h2 class="mb-4">👤 {{ cliente.nome }} <small class="text-muted">(ID: {{ cliente.id }})</small></h2>
+
+<h4>📁 Todos os Projetos Disponíveis:</h4>
+
+<!-- Nome do usuário selecionado -->
+<div id="usuarioSelecionadoInfo" class="alert alert-info mt-2 d-none">
+  👤 <strong>Usuário selecionado:</strong> <span id="nomeUsuarioSelecionado"></span>
+</div>
+
+{% if projetos %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mt-3">
+  {% for proj in projetos %}
+  <div class="col">
+    <div class="card h-100 shadow-sm border-primary">
+      <div class="card-body d-flex flex-column justify-content-between">
+        <h5 class="card-title text-primary">{{ proj.nome_projeto }}</h5>
+        <p class="card-text text-muted">{{ proj.nome_aplicacao }}</p>
+
+        <input type="hidden" id="clienteId" value="{{ cliente.id }}">
+
+        <button type="button" class="btn btn-outline-primary mt-3 w-100 edit-subprojetos-btn"
+          data-bs-toggle="modal"
+          data-bs-target="#modalSubprojetos"
+          data-projeto-id="{{ proj.cod }}"
+          data-projeto-nome="{{ proj.nome_projeto }}">
+          ✏️ Editar Subprojetos
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="mt-3">Nenhum projeto disponível.</p>
+{% endif %}
+
+<div id="salvarTudoFooter">
+  <div class="container">
+    <button class="btn btn-success btn-lg w-100 rounded-pill shadow" onclick="salvarTudo()">
+      💾 Salvar Tudo
+    </button>
+  </div>
+</div>
+
+<!-- Modal Subprojetos -->
+<div class="modal fade" id="modalSubprojetos" tabindex="-1" aria-labelledby="modalSubprojetosLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="formSubprojetos" method="POST" action="{% url 'detalhe_cliente' cliente.id %}">
+      {% csrf_token %}
+      <div class="modal-content border-0 shadow-lg rounded-3 overflow-hidden">
+        <div class="modal-header bg-light border-bottom">
+          <h5 class="modal-title fw-semibold text-dark" id="modalSubprojetosLabel">Editar Subprojetos</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body bg-white text-dark">
+          <input type="hidden" name="projeto_id" id="modalProjetoId" value="">
+          <div id="checkboxContainer" class="form-group">
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-top">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar alterações</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extrajs %}
+<style>
+  body.modal-open #content,
+  body.modal-open .content-wrapper,
+  body.modal-open .wrapper {
+    filter: none !important;
+    backdrop-filter: none !important;
+    pointer-events: auto !important;
+  }
+
+  .modal {
+    filter: none !important;
+    backdrop-filter: none !important;
+    pointer-events: auto !important;
+  }
+
+  .modal-backdrop {
+    backdrop-filter: none !important;
+    background-color: rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .modal-content {
+    filter: none !important;
+    backdrop-filter: none !important;
+    color: #000 !important; /* 👈 agora a letra do modal fica preta */
+  }
+
+  body.modal-open {
+    overflow: auto !important;
+  }
+
+  .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(2px);
+  }
+
+  .modal-content {
+    transition: all 0.3s ease-in-out;
+    border-radius: 1rem;
+  }
+
+  .modal-header {
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .modal-footer {
+    border-top: 1px solid #dee2e6;
+  }
+
+  .form-check-label {
+    font-weight: 500;
+  }
+
+  .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+  }
+
+  body.modal-open {
+    overflow: hidden !important;
+  }
+
+  #salvarTudoFooter {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid #dee2e6;
+    z-index: 1045;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(4px);
+  }
+
+  body.modal-open #salvarTudoFooter {
+    display: none;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  console.log("📦 DOM completamente carregado");
+  
+  // ===========================
+  // VERIFICAR PROJETOS NA PÁGINA
+  // ===========================
+  const projetosNaTela = document.querySelectorAll(".edit-subprojetos-btn");
+
+  if (projetosNaTela.length === 0) {
+    console.warn("⚠️ Nenhum projeto foi renderizado.");
+  } else {
+    console.log(`📁 ${projetosNaTela.length} projetos renderizados:`);
+  }
+
+  projetosNaTela.forEach((btn, index) => {
+    const nomeProjeto = btn.getAttribute("data-projeto-nome");
+    const idProjeto = btn.getAttribute("data-projeto-id");
+    console.log(`🔹 Projeto ${index + 1}: ${nomeProjeto} (ID: ${idProjeto})`);
+  });
+
+  // DECLARAÇÕES ANTES DE USAR
+  const clienteId = document.getElementById("clienteId")?.value || '';
+  console.log("🆔 Cliente ID:", clienteId);
+
+  const modalUsuario = document.getElementById('modalEscolherUsuario');
+  const selectUsuarios = document.getElementById("usuarioSelecionado");
+  const nomeUsuarioEl = document.getElementById("nomeUsuarioSelecionado");
+  const infoBox = document.getElementById("usuarioSelecionadoInfo");
+
+  const bootstrapModal = new bootstrap.Modal(modalUsuario, {
+    backdrop: 'static',
+    keyboard: false
+  });
+
+  // ===========================
+  // FETCH USUÁRIOS DO FIREBIRD
+  // ===========================
+ fetch(`/api/firebird_usuarios/${clienteId}/`, {
+  headers: {
+    "X-Requested-With": "XMLHttpRequest"
+  }
+})
+  .then(res => {
+    console.log("🌐 Status da API usuários:", res.status);
+    if (!res.ok) throw new Error("Erro ao buscar usuários.");
+    return res.json();
+  })
+  .then(data => {
+    if (data.status === "ok" && Array.isArray(data.usuarios)) {
+      console.log("👥 Usuários recebidos:", data.usuarios);
+
+      selectUsuarios.innerHTML = '<option value="">-- Escolha --</option>';
+
+      data.usuarios.forEach(u => {
+        const opt = document.createElement("option");
+        opt.value = u.LOGIN;
+        opt.textContent = `${u.LOGIN} - ${u.NOME}`;
+        selectUsuarios.appendChild(opt);
+      });
+
+      console.log("✅ Select preenchido com usuários.");
+    } else {
+      console.warn("⚠️ Nenhum usuário retornado pela API.");
+    }
+  })
+  .catch(err => {
+    console.error("❌ Erro ao carregar usuários do Firebird:", err);
+    selectUsuarios.innerHTML = '<option value="">Erro ao carregar usuários</option>';
+  });
+
+  // *** FORÇA abrir o modal assim que a página carregar ***
+  console.log("🚨 Forçando exibição do modal de usuário...");
+  bootstrapModal.show();
+
+  // Mostra quantas opções tem no SELECT
+  console.log("🔍 Select de usuários encontrado:", !!selectUsuarios);
+  if (selectUsuarios) {
+    console.log("📋 Usuários no select:", [...selectUsuarios.options].map(o => o.textContent));
+  }
+
+  const usuarioNome = localStorage.getItem("usuarioNome");
+  const temOpcoes = selectUsuarios?.options?.length > 1;
+
+  console.log("💾 LocalStorage usuarioNome:", usuarioNome);
+  console.log("📦 temOpcoes no select?", temOpcoes);
+
+  if (usuarioNome && temOpcoes) {
+    nomeUsuarioEl.textContent = usuarioNome;
+    infoBox.classList.remove("d-none");
+    console.log("✅ Usuário já selecionado, mostrando info");
+  } else {
+    console.log("🧹 Limpando localStorage de usuário inválido");
+    localStorage.removeItem("usuarioSelecionado");
+    localStorage.removeItem("usuarioNome");
+    bootstrapModal.show();
+  }
+
+  // ===========================
+  // FORM SUBMIT DO MODAL
+  // ===========================
+  document.getElementById("formEscolherUsuario").addEventListener("submit", function (e) {
+    e.preventDefault();
+    console.log("📤 Submetendo formEscolherUsuario");
+
+    const usuarioId = selectUsuarios.value;
+    const usuarioNomeTexto = selectUsuarios.options[selectUsuarios.selectedIndex]?.textContent || '';
+
+    console.log("🆔 Usuario selecionado:", usuarioId);
+    console.log("📛 Nome do usuário:", usuarioNomeTexto);
+
+    if (!usuarioId) {
+      alert("Selecione um usuário.");
+      return;
+    }
+
+    // Salva localmente
+    localStorage.setItem("usuarioSelecionado", usuarioId);
+    localStorage.setItem("usuarioNome", usuarioNomeTexto);
+
+    nomeUsuarioEl.textContent = usuarioNomeTexto;
+    infoBox.classList.remove("d-none");
+    bootstrapModal.hide();
+
+    if (window._chamarSalvarDepoisDoModal) {
+      console.log("🔁 Chamando salvarTudo após modal");
+      window._chamarSalvarDepoisDoModal = false;
+      salvarTudo();
+    }
+  });
+
+  // ===========================
+  // MODAL: SUBPROJETOS
+  // ===========================
+  const modalSub = document.getElementById('modalSubprojetos');
+  const checkboxContainer = document.getElementById('checkboxContainer');
+  const modalProjetoId = document.getElementById('modalProjetoId');
+  const modalTitle = document.getElementById('modalSubprojetosLabel');
+
+  modalSub.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    if (!button) return;
+
+    const projetoId = button.getAttribute('data-projeto-id');
+    const projetoNome = button.getAttribute('data-projeto-nome');
+
+    console.log(`🧩 Modal de Subprojetos para: ${projetoId} - ${projetoNome}`);
+
+    modalProjetoId.value = projetoId;
+    modalTitle.textContent = 'Editar Subprojetos - ' + projetoNome;
+    checkboxContainer.innerHTML = 'Carregando...';
+
+    fetch(`/api/subprojetos/${projetoId}/?cliente_id=${clienteId}`, {
+      credentials: 'same-origin'
+    })
+      .then(response => {
+        console.log("📡 Subprojetos fetch status:", response.status);
+        if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        console.log("📦 Subprojetos recebidos:", data);
+
+        checkboxContainer.innerHTML = '';
+
+        if (data.subprojetos && data.subprojetos.length > 0) {
+          const html = data.subprojetos.map(sp =>
+            `<div class="form-check bg-white p-2 rounded">
+              <input class="form-check-input" type="checkbox" value="${sp.id}" id="sp_${sp.id}" name="subprojetos" ${sp.vinculado ? 'checked' : ''}>
+              <label class="form-check-label" for="sp_${sp.id}">${sp.nome_aplicacao}</label>
+            </div>`).join('');
+          checkboxContainer.innerHTML = html;
+        } else {
+          checkboxContainer.innerHTML = '<p>Nenhum subprojeto disponível.</p>';
+        }
+      })
+      .catch(err => {
+        console.error("❌ Erro ao carregar subprojetos:", err);
+        checkboxContainer.innerHTML = '<p class="text-danger">Erro ao carregar subprojetos.</p>';
+      });
+  });
+
+  // ===========================
+  // FORM SUBMIT SUBPROJETOS
+  // ===========================
+  const formSubprojetos = document.getElementById('formSubprojetos');
+  formSubprojetos.addEventListener('submit', function (e) {
+    e.preventDefault();
+    console.log("📤 Submetendo formSubprojetos");
+
+    const formData = new FormData(formSubprojetos);
+
+    fetch(formSubprojetos.action, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: formData
+    })
+      .then(response => {
+        console.log("📡 Subprojetos POST status:", response.status);
+        if (!response.ok) throw new Error(`Erro ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        console.log("✅ Subprojetos salvos:", data);
+        alert('Alterações salvas com sucesso!');
+        const modal = bootstrap.Modal.getInstance(modalSub);
+        modal.hide();
+      })
+      .catch(err => {
+        alert('Erro ao salvar alterações: ' + err.message);
+        console.error(err);
+      });
+  });
+
+  // ===========================
+  // SALVAR TUDO
+  // ===========================
+  window.salvarTudo = function () {
+    console.log("🚨 Chamando salvarTudo");
+
+    const usuarioSelecionado = localStorage.getItem("usuarioSelecionado");
+    const usuarioNome = localStorage.getItem("usuarioNome");
+
+    console.log("🔒 usuarioSelecionado:", usuarioSelecionado);
+    console.log("👤 usuarioNome:", usuarioNome);
+
+    if (!usuarioSelecionado || !usuarioNome) {
+      console.warn("⚠️ Usuário não selecionado ainda.");
+      window._chamarSalvarDepoisDoModal = true;
+      bootstrapModal.show();
+      return;
+    }
+
+    const grupoId = 1;
+
+    fetch(`/api/aplicacoes_ativas/${clienteId}/`)
+      .then(response => response.json())
+      .then(aplicacoes => {
+        console.log("📥 Aplicações ativas:", aplicacoes);
+        const inserts = [];
+
+        aplicacoes.forEach(app => {
+          let codProjeto = 999;
+          let nomeProjeto = 'desconhecido';
+
+          switch (app.cod_relacao_id) {
+            case 3: codProjeto = 1100; nomeProjeto = 'dashboard'; break;
+            case 4: codProjeto = 947; nomeProjeto = 'mobile'; break;
+            case 5:
+            case 6:
+            case 7:
+            case 11: codProjeto = 1050; nomeProjeto = 'restaurant'; break;
+            case 8: codProjeto = 946; nomeProjeto = 'retaguarda'; break;
+            case 9: codProjeto = 1000; nomeProjeto = 'relatorio'; break;
+            case 10: codProjeto = 1150; nomeProjeto = 'estoque'; break;
+          }
+
+          inserts.push({
+            grupo_id: grupoId,
+            cliente_id: clienteId,
+            codModulo: Math.floor(Math.random() * 900) + 100,
+            cod_projeto: codProjeto,
+            nome_projeto: nomeProjeto,
+            app_name: app.nome_aplicacao,
+            privs: {
+              access: 'Y',
+              insert: 'Y',
+              delete: 'Y',
+              update: 'Y',
+              export: 'Y',
+              print: 'Y'
+            }
+          });
+        });
+
+        console.log("📤 Enviando inserts:", inserts);
+
+        return fetch('/api/inserir_aplicacoes/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(inserts)
+        });
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log("✅ Resposta inserir_aplicacoes:", data);
+        alert(`${data.mensagem}`);
+      })
+      .catch(err => {
+        console.error("❌ Erro salvarTudo:", err);
+        alert("Erro ao salvar aplicações.");
+      });
+  };
+});
+</script>
+
+<!-- Bootstrap 5 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Bootstrap 5 JS + Popper.js -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+{% endblock %}

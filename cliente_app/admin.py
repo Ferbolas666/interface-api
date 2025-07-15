@@ -8,63 +8,25 @@ from .models import (
     SecUser, SecGroup, SecUsersGroups,
     SecGroupApp, SecSettings,
     ProjetoAplicacao, ProjetoAplicacaoDetalhe,
-    ClienteProjetoAplicacao, ProjetoAplicacaoSubprojeto
+    ClienteProjetoAplicacao, ProjetoAplicacaoSubprojeto,
+    AplicacaoSubprojeto
 )
 
 # ===========================
-# Form customizado para Cliente com seleção múltipla de Projetos
-# ===========================
-class ClienteProjetosForm(forms.ModelForm):
-    projetos = forms.ModelMultipleChoiceField(
-        queryset=ProjetoAplicacao.objects.all(),
-        required=False,
-        widget=forms.CheckboxSelectMultiple  # Pode trocar para outro widget se quiser
-    )
-
-    class Meta:
-        model = Cliente
-        fields = ['nome', 'cnpj', 'email', 'ativo']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance.pk:
-            self.fields['projetos'].initial = ProjetoAplicacao.objects.filter(
-                clientes_vinculados__cliente=self.instance
-            )
-
-    def save(self, commit=True):
-        cliente = super().save(commit)
-        selecionados = self.cleaned_data['projetos']
-
-        # Remove vínculos que não estão mais selecionados
-        ClienteProjetoAplicacao.objects.filter(cliente=cliente).exclude(projeto__in=selecionados).delete()
-
-        # Adiciona vínculos novos
-        for projeto in selecionados:
-            ClienteProjetoAplicacao.objects.get_or_create(cliente=cliente, projeto=projeto)
-
-        return cliente
-
-
-# ===========================
-# ClienteAdmin com form customizado
+# ClienteAdmin padrão (sem form customizado)
 # ===========================
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
-    form = ClienteProjetosForm
     list_display = ('nome', 'cnpj', 'email', 'ativo')
 
     def changelist_view(self, request, extra_context=None):
         if extra_context is None:
             extra_context = {}
-
-        relatorio_url = reverse('relatorio_clientes')
+        url = reverse('pagina_customizada')
         extra_context['custom_button'] = format_html(
-            '<a class="btn btn-info" href="{}" style="margin-left:10px;">📄 Relatório de Clientes</a>',
-            relatorio_url
+            '<a class="button" href="{}">Ativa Projetos</a>', url
         )
         return super().changelist_view(request, extra_context=extra_context)
-
 
 # ===========================
 # Inline de Detalhes (Aplicações por Cliente+Projeto)
@@ -72,7 +34,6 @@ class ClienteAdmin(admin.ModelAdmin):
 class ProjetoAplicacaoDetalheInline(admin.TabularInline):
     model = ProjetoAplicacaoDetalhe
     extra = 1
-
 
 # ===========================
 # Admin de ClienteProjetoAplicacao
@@ -84,6 +45,13 @@ class ClienteProjetoAplicacaoAdmin(admin.ModelAdmin):
     search_fields = ('cliente__nome', 'projeto__nome_projeto')
     inlines = [ProjetoAplicacaoDetalheInline]
 
+# ===========================
+# Admin de ApliccaoSubprojeto
+# ===========================
+@admin.register(AplicacaoSubprojeto)
+class AplicacaoSubprojetoAdmin(admin.ModelAdmin):
+    list_display = ('nome_aplicacao', 'subprojeto')
+    search_fields = ('nome_aplicacao', 'subprojeto__nome_aplicacao')
 
 # ===========================
 # Admin do Catálogo de Projetos (sem inline)
@@ -105,7 +73,6 @@ class ProjetoAplicacaoSubprojetoAdmin(admin.ModelAdmin):
 admin.site.register(Conexao)
 admin.site.register(Permissao)
 
-
 # ===========================
 # Proxy para Cliente (Segurança)
 # ===========================
@@ -115,7 +82,6 @@ class ClienteSeguranca(Cliente):
         verbose_name = "Cliente (Segurança)"
         verbose_name_plural = "🔒 Segurança por Cliente"
 
-
 # ===========================
 # Inlines de segurança
 # ===========================
@@ -123,26 +89,21 @@ class SecUserInline(admin.TabularInline):
     model = SecUser
     extra = 0
 
-
 class SecGroupInline(admin.TabularInline):
     model = SecGroup
     extra = 0
-
 
 class SecUsersGroupsInline(admin.TabularInline):
     model = SecUsersGroups
     extra = 0
 
-
 class SecGroupAppInline(admin.TabularInline):
     model = SecGroupApp
     extra = 0
 
-
 class SecSettingsInline(admin.TabularInline):
     model = SecSettings
     extra = 0
-
 
 # ===========================
 # Admin para Segurança do Cliente

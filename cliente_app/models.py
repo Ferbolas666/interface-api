@@ -13,7 +13,6 @@ class Cliente(models.Model):
     def __str__(self):
         return self.nome
 
-
 class Conexao(models.Model):
     cliente       = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='conexoes')
     nome          = models.CharField(max_length=100)
@@ -26,7 +25,6 @@ class Conexao(models.Model):
     def __str__(self):
         return f"{self.nome} ({self.cliente.nome})"
 
-
 class Permissao(models.Model):
     cliente   = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='permissoes')
     modulo    = models.CharField(max_length=100)
@@ -34,7 +32,6 @@ class Permissao(models.Model):
 
     def __str__(self):
         return f"{self.cliente.nome} - {self.modulo}"
-
 
 # =============================
 # Segurança (por cliente)
@@ -50,7 +47,6 @@ class SecGroup(models.Model):
 
     def __str__(self):
         return f"{self.group_id} ({self.cliente.nome})"
-
 
 class SecGroupApp(models.Model):
     cliente        = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='sec_group_apps')
@@ -69,7 +65,6 @@ class SecGroupApp(models.Model):
     def __str__(self):
         return f"{self.app_name} - {self.group.group_id} ({self.cliente.nome})"
 
-
 class SecSettings(models.Model):
     cliente   = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='sec_settings')
     set_name  = models.CharField(max_length=50)
@@ -80,7 +75,6 @@ class SecSettings(models.Model):
 
     def __str__(self):
         return f"{self.set_name} ({self.cliente.nome})"
-
 
 class SecUser(models.Model):
     cliente         = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='sec_users')
@@ -104,7 +98,6 @@ class SecUser(models.Model):
     def __str__(self):
         return f"{self.login} ({self.cliente.nome})"
 
-
 class SecUsersGroups(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='sec_users_groups')
     login   = models.ForeignKey(SecUser, on_delete=models.CASCADE, related_name='groups')
@@ -115,7 +108,6 @@ class SecUsersGroups(models.Model):
 
     def __str__(self):
         return f"{self.login.login} - {self.group.group_id} ({self.cliente.nome})"
-
 
 # =============================
 # Catálogo Geral de Projetos
@@ -129,23 +121,44 @@ class ProjetoAplicacao(models.Model):
     def __str__(self):
         return f"{self.nome_projeto} - {self.nome_aplicacao}"
 
+# =============================
+# Subprojetos de Projetos
+# =============================
+
+class ProjetoAplicacaoSubprojeto(models.Model):
+    cod_seq           = models.AutoField(primary_key=True)
+    cod_relacao       = models.ForeignKey(ProjetoAplicacao, on_delete=models.CASCADE, related_name='subprojetos')
+    nome_aplicacao    = models.CharField(max_length=100)
+    nome_demonstracao = models.CharField(max_length=100)
+    ativo             = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.nome_aplicacao} (Subprojeto de {self.cod_relacao.nome_projeto})"
 
 # =============================
-# Relacionamento Cliente ↔ Projeto
+# Relacionamento Cliente ↔ Projeto ↔ Subprojeto
 # =============================
 
 class ClienteProjetoAplicacao(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='projetos_vinculados')
     projeto = models.ForeignKey(ProjetoAplicacao, on_delete=models.CASCADE, related_name='clientes_vinculados')
-    ativo   = models.BooleanField(default=True)
+
+    subprojeto = models.ForeignKey(
+        ProjetoAplicacaoSubprojeto,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='clientes_vinculados'
+    )
+
+    ativo = models.BooleanField(default=True)
     observacao = models.TextField(blank=True, null=True)
 
     class Meta:
-        unique_together = ('cliente', 'projeto')
+        unique_together = ('cliente', 'projeto', 'subprojeto')
 
     def __str__(self):
-        return f"{self.cliente.nome} ↔ {self.projeto.nome_projeto}"
-
+        return f"{self.cliente.nome} ↔ {self.projeto.nome_projeto} ↔ {self.subprojeto.nome_aplicacao if self.subprojeto else 'sem sub'}"
 
 # =============================
 # Detalhes de Aplicações por Cliente-Projeto
@@ -160,14 +173,18 @@ class ProjetoAplicacaoDetalhe(models.Model):
 
     def __str__(self):
         return f"{self.nome_aplicacao} ({self.cliente_projeto.cliente.nome})"
-    
 
-class ProjetoAplicacaoSubprojeto(models.Model):
-    cod_seq           = models.AutoField(primary_key=True)
-    cod_relacao       = models.ForeignKey(ProjetoAplicacao, on_delete=models.CASCADE, related_name='subprojetos')
-    nome_aplicacao    = models.CharField(max_length=100)
-    nome_demonstracao = models.CharField(max_length=100)
-    ativo             = models.BooleanField(default=True)
+# =============================
+# Aplicações de Subprojetos
+# =============================
+
+class AplicacaoSubprojeto(models.Model):
+    subprojeto       = models.ForeignKey(
+        ProjetoAplicacaoSubprojeto,
+        on_delete=models.CASCADE,
+        related_name='aplicacoes'
+    )
+    nome_aplicacao   = models.CharField(max_length=100)
 
     def __str__(self):
-        return f"{self.nome_aplicacao} (Subprojeto de {self.cod_relacao.nome_projeto})"
+        return f"{self.nome_aplicacao} (Subprojeto: {self.subprojeto.nome_aplicacao})"

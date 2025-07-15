@@ -45,12 +45,21 @@ JAZZMIN_SETTINGS = {
     "site_header": "Administração",
     "custom_css": "css/darkmode.css",
 
-    "custom_menu": [
+    "menu_links": [
         {
             "name": "Dashboard",
             "url": "/admin/dashboard/",
             "icon": "fas fa-tachometer-alt",
-            "permissions": [],  # sem restrição de permissão
+        },
+        {
+            "name": "Página Customizada",
+            "url": "/pagina-customizada/",
+            "icon": "fas fa-star",
+        },
+        {
+            "name": "Detalhe Cliente",
+            "url": "/cliente/1/", # só exemplo com id=1
+            "icon": "fas fa-info-circle",
         },
     ],
 }
@@ -134,15 +143,30 @@ JAZZMIN_SETTINGS = {
     "site_header": "Administração",
     "custom_css": "css/darkmode.css",
 
-    "custom_meu": [
+    "topmenu_links": [
         {
             "name": "Dashboard",
-            "url":  "/dashboard/",
+            "url": "/dashboard/",
             "icon": "fas fa-tachometer-alt",
         },
-        #Se quiser adicionar mais itens, é só colocar aqui
     ],
+
+    "custom_links": {
+        "cliente_app.Cliente": [
+            {
+                "name": "📄 Relatório de Clientes",
+                "url": "relatorio_clientes",  # nome da URL
+                "icon": "fas fa-file-alt",
+            },
+            {
+                "name": "📂 Projetos por Cliente",
+                "url": "cliente_projetos",  # nome da URL
+                "icon": "fas fa-folder-open",
+            },
+        ],
+    },
 }
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
