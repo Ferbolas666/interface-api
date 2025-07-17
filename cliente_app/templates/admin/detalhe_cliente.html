@@ -450,26 +450,26 @@ window.salvarTudo = function () {
       const inserts = [];
 
       aplicacoes.forEach(app => {
-        let codProjeto = 999;
+        let codProjeto  = 999;
         let nomeProjeto = 'desconhecido';
 
         switch (app.projeto_id) {
-          case 3:
+          case 1:
             codProjeto  = 1100;
             nomeProjeto = 'dashboard';
             break;
-          case 4:
+          case 2:
             codProjeto  = 947;
             nomeProjeto = 'mobile';
             break;
+          case 3:
+          case 4:
           case 5:
-          case 6:
-          case 7:
-          case 11:
+          case 8:
             codProjeto  = 1050;
             nomeProjeto = 'restaurant';
             break;
-          case 8:
+          case 6:
             codProjeto  = 946;
             nomeProjeto = 'retaguarda';
             break;
@@ -494,7 +494,7 @@ window.salvarTudo = function () {
           cod_projeto: codProjeto,
           nome_projeto: nomeProjeto,
           app_name: app.nome_aplicacao,
-          privs: {
+          priv: {
             access: 'Y',
             insert: 'Y',
             delete: 'Y',
