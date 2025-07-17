@@ -54,19 +54,14 @@ def salvar_aplicacoes_via_api(request):
     except:
         return JsonResponse({'status': 'erro', 'mensagem': 'Grupo ID ou Cliente ID inválido'}, status=400)
 
-    # 🔎 Busca as configurações do cliente
-    try:
-        conexao = Conexao.objects.get(cliente_id=cliente_id)
-        DB_CONFIG = {
-            "ip": conexao.host,
-            "banco": conexao.database_path,
-            "porta": int(conexao.port_local),  # força int aqui
-            "usuario": conexao.usuario,
-            "senha": conexao.senha
-        }
-        
-    except Conexao.DoesNotExist:
-        return JsonResponse({'status': 'erro', 'mensagem': f'Conexão do cliente {cliente_id} não encontrada'}, status=400)
+    # Valores fixos de conexão que você pediu
+    DB_CONFIG = {
+        "ip": "db-junior-repl-3.sp1.br.saveincloud.net.br",
+        "banco": "seupaidecalcinha",
+        "porta": 16475,
+        "usuario": "SYSDBA",
+        "senha": "zyAhhI2tUSdIaG9d0Pa0"
+    }
 
     FIREBIRD_API = "https://desenvapiversatil.com.br/firebird-query"
 
@@ -77,20 +72,11 @@ def salvar_aplicacoes_via_api(request):
         texto = ''.join(c for c in texto if unicodedata.category(c)[0] != 'C')
         return texto
 
-    # 🔢 Buscar o MAX(COD)
     try:
         sql_max_cod = "SELECT MAX(COD) AS MAX_COD FROM SEC_GROUPS_APPS"
         payload_max = {**DB_CONFIG, "sql": sql_max_cod}
 
-        print("📤 Payload REAL enviado para MAX(COD):", json.dumps(payload_max, indent=2))  # sem esconder a senha, só pra debugar
-        print("🧪 DEBUG SQL:", sql_max_cod)
-        print("🧪 DEBUG DB_CONFIG:", json.dumps({**DB_CONFIG, "senha": "*****"}, indent=2))
-
         res_max = requests.post(FIREBIRD_API, json=payload_max, timeout=10)
-        print("📥 RAW response:", res_max.text)
-
-        print("📥 Resposta crua do MAX(COD):", res_max.text)
-
         res_max.raise_for_status()
         max_data = res_max.json()
 
@@ -100,9 +86,8 @@ def salvar_aplicacoes_via_api(request):
             max_cod = max_data['data'][0].get('MAX_COD') or 0
         else:
             max_cod = 0
-
     except Exception as e:
-        return JsonResponse({'status': 'erro', 'mensagem': f'Erro ao buscar MAX(COD): {str(e)}'}, status=500)
+        max_cod = 0
 
     total_inseridos = 0
     inseridos_debug = []
@@ -119,7 +104,7 @@ def salvar_aplicacoes_via_api(request):
 
         nome_projeto_sql = limpar_nome(nome_projeto)
         nome_aplicacao_sql = limpar_nome(nome_aplicacao)
-        max_cod += 1  # 🚀 incrementa manualmente
+        max_cod += 1
 
         sql_insert = f"""
             INSERT INTO SEC_GROUPS_APPS
@@ -130,10 +115,7 @@ def salvar_aplicacoes_via_api(request):
              'Y', 'Y', 'Y', 'Y', 'Y', 'Y')
         """
 
-        payload_insert = {
-            **DB_CONFIG,
-            "sql": sql_insert
-        }
+        payload_insert = {**DB_CONFIG, "sql": sql_insert}
 
         try:
             res_insert = requests.post(FIREBIRD_API, json=payload_insert, timeout=10)
@@ -147,7 +129,6 @@ def salvar_aplicacoes_via_api(request):
 
             total_inseridos += 1
             inseridos_debug.append(f"✅ {nome_aplicacao_sql} | COD: {max_cod} | Resposta: {resposta_json}")
-
         except Exception as e:
             inseridos_debug.append(f"❌ {nome_aplicacao_sql} | COD: {max_cod} | Erro: {str(e)}")
             continue
@@ -313,31 +294,61 @@ def usuarios_cliente_api(request, cliente_id):
 def api_usuarios_firebird(request, cliente_id):
     if request.META.get("HTTP_X_REQUESTED_WITH") != "XMLHttpRequest":
         return JsonResponse({'erro': 'Requisição inválida'}, status=400)
-
-    config = {
+    
+    config_base = {
         "ip": "db-junior-repl-3.sp1.br.saveincloud.net.br",
         "banco": "/opt/firebird/data/dados-junior-remoto.fdb",
         "porta": 16475,
         "usuario": "SYSDBA",
         "senha": "zyAhhI2tUSdIaG9d0Pa0",
-        "sql": "SELECT LOGIN, NAME AS NOME FROM SEC_USERS WHERE ACTIVE =  'Y'"
     }
 
     try:
+        # 1️⃣ Primeiro SELECT: busca os usuários ativos
+        config_usuarios = {
+            **config_base,
+            "sql": "SELECT LOGIN, NAME AS NOME FROM SEC_USERS WHERE ACTIVE = 'Y'"
+        }
+
         resp = requests.post(
             "https://desenvapiversatil.com.br/firebird-query",
-            json=config,
+            json=config_usuarios,
             timeout=10
         )
         resp.raise_for_status()
         data = resp.json()
         usuarios = data if isinstance(data, list) else data.get("data", [])
 
-        return JsonResponse({'status': 'ok', 'usuarios': usuarios})
+        # 2️⃣ Para cada usuário, buscar o GROUP_ID
+        for user in usuarios:
+            login = user["LOGIN"]
 
+            config_group = {
+                **config_base,
+                "sql": f"SELECT GROUP_ID FROM SEC_USERS_GROUPS WHERE LOGIN = '{login}'"
+            }
+
+            try:
+                group_resp = requests.post(
+                    "https://desenvapiversatil.com.br/firebird-query",
+                    json=config_group,
+                    timeout=5
+                )
+                group_resp.raise_for_status()
+                group_data = group_resp.json()
+
+                if isinstance(group_data, list) and len(group_data) > 0:
+                    user["GROUP_ID"] = group_data[0].get("GROUP_ID")
+                else:
+                    user["GROUP_ID"] = None
+            except Exception as group_err:
+                user["GROUP_ID"] = None # Silencia erro individual
+
+        return JsonResponse({'status': 'ok', 'usuarios': usuarios})
+    
     except Exception as e:
         return JsonResponse({'status': 'erro', 'mensagem': str(e), 'usuarios': []}, status=502)
-    
+
 # =========================
 # DASHBOARD
 # =========================

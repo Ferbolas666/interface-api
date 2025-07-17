@@ -204,13 +204,13 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // DECLARAÇÕES ANTES DE USAR
-  const clienteId = document.getElementById("clienteId")?.value || '';
+  const clienteId  = document.getElementById("clienteId")?.value || '';
   console.log("🆔 Cliente ID:", clienteId);
 
-  const modalUsuario = document.getElementById('modalEscolherUsuario');
+  const modalUsuario   = document.getElementById('modalEscolherUsuario');
   const selectUsuarios = document.getElementById("usuarioSelecionado");
-  const nomeUsuarioEl = document.getElementById("nomeUsuarioSelecionado");
-  const infoBox = document.getElementById("usuarioSelecionadoInfo");
+  const nomeUsuarioEl  = document.getElementById("nomeUsuarioSelecionado");
+  const infoBox        = document.getElementById("usuarioSelecionadoInfo");
 
   const bootstrapModal = new bootstrap.Modal(modalUsuario, {
     backdrop: 'static',
@@ -220,11 +220,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // ===========================
   // FETCH USUÁRIOS DO FIREBIRD
   // ===========================
- fetch(`/api/firebird_usuarios/${clienteId}/`, {
-  headers: {
-    "X-Requested-With": "XMLHttpRequest"
-  }
-})
+  let usuariosFirebird = []; // Armazena os usuários globalmente
+
+  fetch(`/api/firebird_usuarios/${clienteId}/`, {
+    headers: {
+      "X-Requested-With": "XMLHttpRequest"
+    }
+  })
   .then(res => {
     console.log("🌐 Status da API usuários:", res.status);
     if (!res.ok) throw new Error("Erro ao buscar usuários.");
@@ -234,12 +236,14 @@ document.addEventListener('DOMContentLoaded', function () {
     if (data.status === "ok" && Array.isArray(data.usuarios)) {
       console.log("👥 Usuários recebidos:", data.usuarios);
 
+      usuariosFirebird = data.usuarios; // Salva globalmente
+
       selectUsuarios.innerHTML = '<option value="">-- Escolha --</option>';
 
       data.usuarios.forEach(u => {
-        const opt = document.createElement("option");
-        opt.value = u.LOGIN;
-        opt.textContent = `${u.LOGIN} - ${u.NOME}`;
+        const opt       = document.createElement("option");
+        opt.value       = u.LOGIN;
+        opt.textContent = `${u.LOGIN} = ${u.NOME}`;
         selectUsuarios.appendChild(opt);
       });
 
@@ -250,21 +254,40 @@ document.addEventListener('DOMContentLoaded', function () {
   })
   .catch(err => {
     console.error("❌ Erro ao carregar usuários do Firebird:", err);
-    selectUsuarios.innerHTML = '<option value="">Erro ao carregar usuários</option>';
+    selectUsuarios.innerHTML = '<option value"">Erro ao carregar usuários</option>';
   });
 
-  // *** FORÇA abrir o modal assim que a página carregar ***
+  // ===========================
+  // AO SELECIONAR UM USUÁRIO
+  // ===========================
+  selectUsuarios.addEventListener("change", function () {
+    const loginSelecionado = this.value;
+    const usuario = usuariosFirebird.find(u => u.LOGIN === loginSelecionado);
+
+    if (usuario) {
+      localStorage.setItem("usuarioSelecionado", usuario.LOGIN);
+      localStorage.setItem("usuarioNome", usuario.NOME);
+      localStorage.setItem("usuarioGroupId", usuario.GROUP_ID ?? "");
+
+      nomeUsuarioEl.textContent = usuario.NOME;
+      infoBox.classList.remove("d-none");
+
+      bootstrapModal.hide();
+      console.log("✅ Usuário selecionado:", usuario);
+    }
+  });
+
+  // ===========================
+  // FORÇA abrir o modal ao carregar
+  // ===========================
   console.log("🚨 Forçando exibição do modal de usuário...");
   bootstrapModal.show();
 
-  // Mostra quantas opções tem no SELECT
-  console.log("🔍 Select de usuários encontrado:", !!selectUsuarios);
-  if (selectUsuarios) {
-    console.log("📋 Usuários no select:", [...selectUsuarios.options].map(o => o.textContent));
-  }
-
+  // ===========================
+  // Validação localStorage
+  // ===========================
   const usuarioNome = localStorage.getItem("usuarioNome");
-  const temOpcoes = selectUsuarios?.options?.length > 1;
+  const temOpcoes   = selectUsuarios?.options?.length > 1;
 
   console.log("💾 LocalStorage usuarioNome:", usuarioNome);
   console.log("📦 temOpcoes no select?", temOpcoes);
@@ -277,6 +300,7 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log("🧹 Limpando localStorage de usuário inválido");
     localStorage.removeItem("usuarioSelecionado");
     localStorage.removeItem("usuarioNome");
+    localStorage.removeItem("usuarioGroupId");
     bootstrapModal.show();
   }
 
@@ -398,87 +422,110 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   });
 
-  // ===========================
-  // SALVAR TUDO
-  // ===========================
-  window.salvarTudo = function () {
-    console.log("🚨 Chamando salvarTudo");
+ // ===========================
+// SALVAR TUDO
+// ===========================
+window.salvarTudo = function () {
+  console.log("🚨 Chamando salvarTudo");
 
-    const usuarioSelecionado = localStorage.getItem("usuarioSelecionado");
-    const usuarioNome = localStorage.getItem("usuarioNome");
+  const usuarioSelecionado = localStorage.getItem("usuarioSelecionado");
+  const usuarioNome        = localStorage.getItem("usuarioNome");
+  const grupoId            = parseInt(localStorage.getItem("usuarioGroupId")) || 1;
 
-    console.log("🔒 usuarioSelecionado:", usuarioSelecionado);
-    console.log("👤 usuarioNome:", usuarioNome);
+  console.log("🔒 usuarioSelecionado:", usuarioSelecionado);
+  console.log("👤 usuarioNome:", usuarioNome);
+  console.log("🧾 grupoId:", grupoId);
 
-    if (!usuarioSelecionado || !usuarioNome) {
-      console.warn("⚠️ Usuário não selecionado ainda.");
-      window._chamarSalvarDepoisDoModal = true;
-      bootstrapModal.show();
-      return;
-    }
+  if (!usuarioSelecionado || !usuarioNome) {
+    console.warn("⚠️ Usuário não selecionado ainda.");
+    window._chamarSalvarDepoisDoModal = true;
+    bootstrapModal.show();
+    return;
+  }
 
-    const grupoId = 1;
+  fetch(`/api/aplicacoes_ativas/${clienteId}/`)
+    .then(response => response.json())
+    .then(aplicacoes => {
+      console.log("📥 Aplicações ativas:", aplicacoes);
+      const inserts = [];
 
-    fetch(`/api/aplicacoes_ativas/${clienteId}/`)
-      .then(response => response.json())
-      .then(aplicacoes => {
-        console.log("📥 Aplicações ativas:", aplicacoes);
-        const inserts = [];
+      aplicacoes.forEach(app => {
+        let codProjeto = 999;
+        let nomeProjeto = 'desconhecido';
 
-        aplicacoes.forEach(app => {
-          let codProjeto = 999;
-          let nomeProjeto = 'desconhecido';
+        switch (app.projeto_id) {
+          case 3:
+            codProjeto  = 1100;
+            nomeProjeto = 'dashboard';
+            break;
+          case 4:
+            codProjeto  = 947;
+            nomeProjeto = 'mobile';
+            break;
+          case 5:
+          case 6:
+          case 7:
+          case 11:
+            codProjeto  = 1050;
+            nomeProjeto = 'restaurant';
+            break;
+          case 8:
+            codProjeto  = 946;
+            nomeProjeto = 'retaguarda';
+            break;
+          case 9:
+            codProjeto  = 1000;
+            nomeProjeto = 'relatorio';
+            break;
+          case 10:
+            codProjeto  = 1150;
+            nomeProjeto = 'estoque';
+            break;
+          default:
+            codProjeto  = 999;
+            nomeProjeto = app.projeto_nome || 'desconhecido';
+            break;
+        }
 
-          switch (app.cod_relacao_id) {
-            case 3: codProjeto = 1100; nomeProjeto = 'dashboard'; break;
-            case 4: codProjeto = 947; nomeProjeto = 'mobile'; break;
-            case 5:
-            case 6:
-            case 7:
-            case 11: codProjeto = 1050; nomeProjeto = 'restaurant'; break;
-            case 8: codProjeto = 946; nomeProjeto = 'retaguarda'; break;
-            case 9: codProjeto = 1000; nomeProjeto = 'relatorio'; break;
-            case 10: codProjeto = 1150; nomeProjeto = 'estoque'; break;
+        inserts.push({
+          grupo_id: grupoId,
+          cliente_id: clienteId,
+          codModulo: Math.floor(Math.random() * 900) + 100,
+          cod_projeto: codProjeto,
+          nome_projeto: nomeProjeto,
+          app_name: app.nome_aplicacao,
+          privs: {
+            access: 'Y',
+            insert: 'Y',
+            delete: 'Y',
+            update: 'Y',
+            export: 'Y',
+            print: 'Y'
           }
-
-          inserts.push({
-            grupo_id: grupoId,
-            cliente_id: clienteId,
-            codModulo: Math.floor(Math.random() * 900) + 100,
-            cod_projeto: codProjeto,
-            nome_projeto: nomeProjeto,
-            app_name: app.nome_aplicacao,
-            privs: {
-              access: 'Y',
-              insert: 'Y',
-              delete: 'Y',
-              update: 'Y',
-              export: 'Y',
-              print: 'Y'
-            }
-          });
         });
-
-        console.log("📤 Enviando inserts:", inserts);
-
-        return fetch('/api/inserir_aplicacoes/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(inserts)
-        });
-      })
-      .then(res => res.json())
-      .then(data => {
-        console.log("✅ Resposta inserir_aplicacoes:", data);
-        alert(`${data.mensagem}`);
-      })
-      .catch(err => {
-        console.error("❌ Erro salvarTudo:", err);
-        alert("Erro ao salvar aplicações.");
       });
-  };
+
+      console.log("📤 Enviando inserts:", inserts);
+
+      return fetch('/api/inserir_aplicacoes/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(inserts)
+      });
+    })
+    .then(res => res.json())
+    .then(data => {
+      console.log("✅ Resposta inserir_aplicacoes:", data);
+      alert(`${data.mensagem}`);
+    })
+    .catch(err => {
+      console.error("❌ Erro salvarTudo:", err);
+      alert("Erro ao salvar aplicações.");
+    });
+};
+
 });
 </script>
 
