@@ -1,0 +1,146 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div style="max-width: 700px; margin: 0 auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+  <!-- Painel Grupos Existentes -->
+  <div style="
+      background: #fff; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); 
+      padding: 1.5rem; 
+      margin-bottom: 3rem;
+    ">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="#2c3e50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z" stroke="#2c3e50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="#2c3e50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 3.13C16.8604 3.3503 17.623 3.8507 18.1676 4.55231C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89317 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="#2c3e50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h1 style="font-weight: 700; color: #2c3e50; margin: 0;">Grupos do Cliente {{ cliente_id }}</h1>
+    </div>
+    
+    <div id="grupos-container" style="min-height: 100px;">
+      Carregando grupos...
+    </div>
+  </div>
+
+  <!-- Painel Cadastro Novo Grupo -->
+  <div style="
+      background: #fff; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); 
+      padding: 1.5rem;
+    ">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 5V19" stroke="#2c3e50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5 12H19" stroke="#2c3e50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h2 style="color: #2c3e50; font-weight: 700; margin: 0;">Cadastrar Novo Grupo</h2>
+    </div>
+
+    <form id="form-cadastrar-grupo" method="post" action="{% url 'cadastrar_grupo' cliente_id=cliente_id %}" style="
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      ">
+      <div>
+        <label for="group_id" style="display: block; font-weight: 600; color: #34495e; margin-bottom: 8px;">
+          ID do Grupo
+        </label>
+        <input 
+          type="number" 
+          id="group_id" 
+          name="group_id" 
+          required 
+          placeholder="Ex: 123" 
+          style="
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+          "
+        />
+      </div>
+
+      <div>
+        <label for="description" style="display: block; font-weight: 600; color: #34495e; margin-bottom: 8px;">
+          Descrição
+        </label>
+        <input 
+          type="text" 
+          id="description" 
+          name="description" 
+          required 
+          placeholder="Descrição do grupo" 
+          style="
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+          "
+        />
+      </div>
+
+      <button 
+        type="submit" 
+        style="
+          background-color: #2980b9;
+          color: white;
+          padding: 12px 24px;
+          border: none;
+          border-radius: 6px;
+          font-weight: 600;
+          font-size: 15px;
+          cursor: pointer;
+          align-self: flex-start;
+          transition: background-color 0.3s;
+        "
+      >
+        Cadastrar
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    fetch(window.location.href, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(res => res.json())
+    .then(data => {
+      const container = document.getElementById('grupos-container');
+      if (data.status === 'ok' && data.grupos.length > 0) {
+        let html = `<table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #34495e;">
+                      <thead>
+                        <tr style="background-color: #f8f9fa;">
+                          <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef;">ID</th>
+                          <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef;">Descrição</th>
+                        </tr>
+                      </thead>
+                      <tbody>`;
+        data.grupos.forEach(g => {
+          html += `<tr style="border-bottom: 1px solid #e9ecef;">
+                     <td style="padding: 12px;">${g.GROUP_ID}</td>
+                     <td style="padding: 12px;">${g.DESCRIPTION || ''}</td>
+                   </tr>`;
+        });
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+      } else {
+        container.innerHTML = '<p style="color: #6c757d; padding: 20px 0; text-align: center;">Nenhum grupo encontrado</p>';
+      }
+    })
+    .catch(() => {
+      document.getElementById('grupos-container').innerHTML = '<p style="color: #dc3545; padding: 20px 0; text-align: center;">Erro ao carregar grupos</p>';
+    });
+  });
+</script>
+{% endblock %}

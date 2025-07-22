@@ -13,6 +13,9 @@ from cliente_app.views import (
     cadastrar_usuario_api,
     grupos_disponiveis_api,
     api_usuarios_firebird,
+    grupos_cliente_api,
+    rota_falsa,
+    cadastrar_grupo,
 )
 
 urlpatterns = [
@@ -36,4 +39,7 @@ urlpatterns = [
     path("api/grupos_disponiveis/", grupos_disponiveis_api, name="grupos_disponiveis"),
 
     path("api/firebird_usuarios/<int:cliente_id>/", api_usuarios_firebird, name="api_usuarios_firebird"),
+    path("api/grupos_cliente/<int:cliente_id>/", grupos_cliente_api, name="grupos_cliente_api"),
+    path('api_criar_grupo/', rota_falsa, name='api_criar_grupo'),
+    path("cliente/<int:cliente_id>/cadastrar-grupo/", cadastrar_grupo, name="cadastrar_grupo"),
 ]

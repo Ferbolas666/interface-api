@@ -522,3 +522,81 @@ def api_aplicacoes_ativas(request, cliente_id):
             })
 
     return JsonResponse(resultado, safe=False)
+
+# =========================
+# API Para Cadastro de Grupos
+# =========================
+@csrf_exempt
+def grupos_cliente_api(request, cliente_id):
+    """
+    View que retorna os grupos do cliente por AJAX, ou renderiza a tela com HTML se for acesso normal.
+    """
+
+    # 1. Se for requisição AJAX, retorna JSON com os grupos
+    if request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest":
+        config = {
+            "ip": "db-junior-repl-3.sp1.br.saveincloud.net.br",
+            "banco": "/opt/firebird/data/dados-junior-remoto.fdb",
+            "porta": 16475,
+            "usuario": "SYSDBA",
+            "senha": "zyAhhI2tUSdIaG9d0Pa0",
+            "sql": "SELECT GROUP_ID, DESCRIPTION FROM SEC_GROUPS ORDER BY GROUP_ID"
+        }
+
+        try:
+            print(f"🔍 Cliente ID: {cliente_id} — Enviando requisição para API externa:", config)
+            resp = requests.post("https://desenvapiversatil.com.br/firebird-query", json=config, timeout=10)
+            print("✅ Resposta bruta:", resp.text)
+            resp.raise_for_status()
+
+            dados = resp.json()
+            grupos = dados if isinstance(dados, list) else dados.get("data", []) or dados.get("resultado", [])
+
+            return JsonResponse({"status": "ok", "grupos": grupos})
+
+        except requests.exceptions.RequestException as e:
+            print("❌ Erro na API externa:", e)
+            return JsonResponse({
+                "status": "erro",
+                "mensagem": f"Erro na API externa: {str(e)}",
+                "dados_enviados": config
+            }, status=502)
+
+    # 2. Se não for AJAX, renderiza a tela HTML com o ID do cliente
+    return render(request, "admin/grupos_cliente.html", {"cliente_id": cliente_id})
+
+def rota_falsa(request):
+    return JsonResponse({"erro": "rota fictícia criada para evitar NoReverseMatch"})
+
+# =========================
+# API De Insert de Grupo
+# =========================
+
+@csrf_exempt  # mantenha só se estiver testando via ferramentas externas ou sem CSRF
+def cadastrar_grupo(request, cliente_id):
+    if request.method == 'POST':
+        group_id = request.POST.get('group_id')
+        description = request.POST.get('description')
+
+        payload = {
+            "ip": "db-junior-repl-3.sp1.br.saveincloud.net.br",
+            "banco": "/opt/firebird/data/dados-junior-remoto.fdb",
+            "porta": 16475,
+            "usuario": "SYSDBA",
+            "senha": "zyAhhI2tUSdIaG9d0Pa0",
+            "sql": f"INSERT INTO SEC_GROUPS (GROUP_ID, DESCRIPTION) VALUES ({group_id}, '{description}')"
+        }
+
+        try:
+            resp = requests.post("https://desenvapiversatil.com.br/firebird-query", json=payload, timeout=10)
+            resp.raise_for_status()
+            print("✅ Grupo inserido com sucesso!")
+        except requests.exceptions.RequestException as e:
+            print("❌ Erro ao inserir grupo:", e)
+            # Aqui pode adicionar mensagem flash, log, etc.
+
+        # Redireciona para a página que mostra os grupos do cliente
+        return redirect("detalhe_cliente", cliente_id=cliente_id)
+
+    # Se não for POST, redireciona pra mesma página
+    return redirect("detalhe_cliente", cliente_id=cliente_id)

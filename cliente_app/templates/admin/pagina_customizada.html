@@ -22,6 +22,10 @@
 
                  <!-- Botão para cadastrar usuários -->
                   <a href="{% url 'usuarios_cliente' cliente.id %}" class="btn btn-warning btn-sm">👤 Gerenciar Usuários</a>
+
+                <!-- Botão grupo Clientes -->
+                 <a href="{% url 'grupos_cliente_api' cliente.id %}" class="btn btn-success btn-sm">👥 Gerenciar Grupos</a>
+
             </td>
         </tr>
         {% empty %}
