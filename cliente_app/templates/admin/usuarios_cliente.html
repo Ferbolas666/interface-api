@@ -135,38 +135,43 @@
 
     // Carrega os grupos de permissão e preenche o select
     function carregarGrupos() {
-        const select = document.getElementById("grupoId");
-        if (!select) {
-            console.warn("❌ Campo #grupoId não encontrado no HTML.");
+    const select = document.getElementById("grupoId");
+    if (!select) {
+        console.warn("❌ Campo #grupoId não encontrado no HTML.");
+        return;
+    }
+
+    const clienteId = document.getElementById("clienteId").value;
+
+    fetch("/api/grupos_disponiveis/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: JSON.stringify({ cliente_id: clienteId })
+    })
+    .then(resp => {
+        if (!resp.ok) throw new Error(`Erro HTTP: ${resp.status}`);
+        return resp.json();
+    })
+    .then(data => {
+        select.innerHTML = '<option value="">-- Selecione o grupo --</option>';
+
+        if (data.status !== "ok" || !Array.isArray(data.grupos)) {
+            select.innerHTML += '<option disabled>❌ Erro ao carregar grupos</option>';
             return;
         }
 
-        fetch("/api/grupos_disponiveis/", {
-            headers: { "X-Requested-With": "XMLHttpRequest" }
-        })
-        .then(resp => {
-            if (!resp.ok) throw new Error(`Erro HTTP: ${resp.status}`);
-            return resp.json();
-        })
-        .then(data => {
-            console.log("📦 Grupos carregados:", data);
-
-            select.innerHTML = '<option value="">-- Selecione o grupo --</option>';
-
-            if (data.status !== "ok" || !Array.isArray(data.grupos)) {
-                select.innerHTML += '<option disabled>❌ Erro ao carregar grupos</option>';
-                return;
-            }
-
-            data.grupos.forEach(grupo => {
-                select.innerHTML += `<option value="${grupo.GROUP_ID}">${grupo.DESCRIPTION}</option>`;
-            });
-        })
-        .catch(err => {
-            console.error("❌ Erro ao carregar grupos:", err);
-            select.innerHTML = '<option disabled>Erro ao carregar grupos</option>';
+        data.grupos.forEach(grupo => {
+            select.innerHTML += `<option value="${grupo.GROUP_ID}">${grupo.DESCRIPTION}</option>`;
         });
-    }
+    })
+    .catch(err => {
+        select.innerHTML = '<option disabled>Erro ao carregar grupos</option>';
+        console.error("❌ Erro ao carregar grupos:", err);
+    });
+}
 
 // Cadastro de usuário
 document.addEventListener("DOMContentLoaded", function () {

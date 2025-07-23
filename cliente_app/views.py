@@ -54,13 +54,18 @@ def salvar_aplicacoes_via_api(request):
     except:
         return JsonResponse({'status': 'erro', 'mensagem': 'Grupo ID ou Cliente ID inválido'}, status=400)
 
-    # Valores fixos de conexão que você pediu
+    # 🔁 BUSCAR CONEXÃO NO BANCO
+    try:
+        conexao = Conexao.objects.get(cliente_id=cliente_id)
+    except Conexao.DoesNotExist:
+        return JsonResponse({'status': 'erro', 'mensagem': 'Conexão não encontrada para este cliente'}, status=404)
+
     DB_CONFIG = {
-        "ip": "db-junior-repl-3.sp1.br.saveincloud.net.br",
-        "banco": "seupaidecalcinha",
-        "porta": 16475,
-        "usuario": "SYSDBA",
-        "senha": "zyAhhI2tUSdIaG9d0Pa0"
+        "ip": conexao.host,
+        "banco": conexao.database_path,
+        "porta": int(conexao.port_local),
+        "usuario": conexao.usuario,
+        "senha": conexao.senha
     }
 
     FIREBIRD_API = "https://desenvapiversatil.com.br/firebird-query"
@@ -160,52 +165,52 @@ def cadastrar_usuario_api(request):
     try:
         dados = json.loads(request.body)
 
-        login    = dados.get("login")
-        senha    = dados.get("senha")
-        nome     = dados.get("nome")
-        email    = dados.get("email")
-        ativo    = 'Y' if dados.get("ativo") else 'N'
-        admin    = 'Y' if dados.get("admin") else 'N'
-        grupo_id = dados.get("grupo_id")
+        login      = dados.get("login")
+        senha      = dados.get("senha")
+        nome       = dados.get("nome")
+        email      = dados.get("email")
+        ativo      = 'Y' if dados.get("ativo") else 'N'
+        admin      = 'Y' if dados.get("admin") else 'N'
+        grupo_id   = dados.get("grupo_id")
+        cliente_id = dados.get("cliente_id")
 
-        if not grupo_id:
-            return JsonResponse({"status": "erro", "mensagem": "Grupo de permissão não informado!"}, status=400)
+        if not grupo_id or not cliente_id:
+            return JsonResponse({"status": "erro", "mensagem": "Grupo ou cliente não informado!"}, status=400)
 
-        # 🔐 Configuração da conexão
+        # 🔁 BUSCAR CONFIG DA CONEXÃO DO CLIENTE
+        try:
+            conexao = Conexao.objects.get(cliente_id=cliente_id)
+        except Conexao.DoesNotExist:
+            return JsonResponse({"status": "erro", "mensagem": "Conexão não encontrada para este cliente"}, status=404)
+
         config_base = {
-            "ip": "db-junior-repl-3.sp1.br.saveincloud.net.br",
-            "banco": "/opt/firebird/data/dados-junior-remoto.fdb",
-            "porta": 16475,
-            "usuario": "SYSDBA",
-            "senha": "zyAhhI2tUSdIaG9d0Pa0"
+            "ip": conexao.host,
+            "banco": conexao.database_path,
+            "porta": int(conexao.port_local),
+            "usuario": conexao.usuario,
+            "senha": conexao.senha
         }
 
-        # 1️⃣ Primeiro INSERT: Usuário
+        FIREBIRD_API = "https://desenvapiversatil.com.br/firebird-query"
+
+        # 1️⃣ INSERT: SEC_USERS
         sql_usuario = f"""
             INSERT INTO SEC_USERS (LOGIN, PSWD, NAME, EMAIL, ACTIVE, PRIV_ADMIN)
             VALUES ('{login}', '{senha}', '{nome}', '{email}', '{ativo}', '{admin}')
         """
 
-        payload_usuario = {
-            **config_base,
-            "sql": sql_usuario.strip()
-        }
-
-        r1 = requests.post("https://desenvapiversatil.com.br/firebird-query", json=payload_usuario, timeout=10)
+        payload_usuario = {**config_base, "sql": sql_usuario.strip()}
+        r1 = requests.post(FIREBIRD_API, json=payload_usuario, timeout=10)
         r1.raise_for_status()
 
-        # 2️⃣ Segundo INSERT: Grupo
+        # 2️⃣ INSERT: SEC_USERS_GROUPS
         sql_grupo = f"""
             INSERT INTO SEC_USERS_GROUPS (GROUP_ID, LOGIN)
             VALUES ({grupo_id}, '{login}')
         """
 
-        payload_grupo = {
-            **config_base,
-            "sql": sql_grupo.strip()
-        }
-
-        r2 = requests.post("https://desenvapiversatil.com.br/firebird-query", json=payload_grupo, timeout=10)
+        payload_grupo = {**config_base, "sql": sql_grupo.strip()}
+        r2 = requests.post(FIREBIRD_API, json=payload_grupo, timeout=10)
         r2.raise_for_status()
 
         return JsonResponse({"status": "ok", "mensagem": "Usuário e grupo vinculados com sucesso!"})
@@ -221,86 +226,158 @@ def cadastrar_usuario_api(request):
 # =========================
 @csrf_exempt
 def grupos_disponiveis_api(request):
-    if request.META.get("HTTP_X_REQUESTED_WITH") != "XMLHttpRequest":
+    if request.method != "POST":
         return JsonResponse({"status": "erro", "mensagem": "Método não permitido"}, status=405)
 
+    try:
+        dados = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"status": "erro", "mensagem": "JSON inválido"}, status=400)
+
+    cliente_id = dados.get("cliente_id")
+    if not cliente_id:
+        return JsonResponse({"status": "erro", "mensagem": "Cliente não informado!"}, status=400)
+
+    try:
+        conexao = Conexao.objects.get(cliente_id=cliente_id)
+    except Conexao.DoesNotExist:
+        return JsonResponse({"status": "erro", "mensagem": "Conexão não encontrada para este cliente"}, status=404)
+
     config = {
-        "ip": "db-junior-repl-3.sp1.br.saveincloud.net.br",
-        "banco": "/opt/firebird/data/dados-junior-remoto.fdb",
-        "porta": 16475,
-        "usuario": "SYSDBA",
-        "senha": "zyAhhI2tUSdIaG9d0Pa0",
+        "ip": conexao.host,
+        "banco": conexao.database_path,
+        "porta": int(conexao.port_local),
+        "usuario": conexao.usuario,
+        "senha": conexao.senha,
         "sql": "SELECT GROUP_ID, DESCRIPTION FROM SEC_GROUPS ORDER BY GROUP_ID"
     }
 
+    FIREBIRD_API = "https://desenvapiversatil.com.br/firebird-query"
+
     try:
-        print("🔍 Enviando requisição para API externa:", config)
-        resp = requests.post("https://desenvapiversatil.com.br/firebird-query", json=config, timeout=10)
-        print("✅ Resposta bruta:", resp.text)
+        resp = requests.post(FIREBIRD_API, json=config, timeout=10)
         resp.raise_for_status()
 
-        dados = resp.json()
+        dados_api = resp.json()
 
-        # 🔐 Dependendo do formato retornado
-        if isinstance(dados, list):
-            grupos = dados
+        if isinstance(dados_api, list):
+            grupos = dados_api
         else:
-            grupos = dados.get("data", []) or dados.get("resultado", [])
+            grupos = dados_api.get("data", []) or dados_api.get("resultado", [])
 
         return JsonResponse({"status": "ok", "grupos": grupos})
-    
+
     except requests.exceptions.RequestException as e:
-        print("❌ Erro na API externa:", e)
         return JsonResponse({
             "status": "erro",
-            "mensagem": f"Erro na API externa: {e}",
-            "dados_enviados": config
+            "mensagem": f"Erro na API externa: {str(e)}"
         }, status=502)
+
+    except Exception as e:
+        return JsonResponse({
+            "status": "erro",
+            "mensagem": f"Erro interno: {str(e)}"
+        }, status=500)
 
 # =========================
 # API: Usuários
 # =========================
 def usuarios_cliente_api(request, cliente_id):
     if request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest":
+        try:
+            # Busca a conexão no banco de dados usando o cliente_id
+            conexao = Conexao.objects.get(cliente_id=cliente_id)
+        except Conexao.DoesNotExist:
+            return JsonResponse({
+                "status": "erro",
+                "mensagem": f"Conexão não encontrada para o cliente ID {cliente_id}"
+            }, status=404)
+
+        # Tratamento seguro da porta
+        try:
+            porta = int(conexao.port_local)
+        except (TypeError, ValueError):
+            porta = 3050  # Fallback para porta padrão do Firebird
+
+        # Monta a configuração dinamicamente
         config = {
-            "ip": "db-junior-repl-3.sp1.br.saveincloud.net.br",
-            "banco": "/opt/firebird/data/dados-junior-remoto.fdb",
-            "porta": 16475,
-            "usuario": "SYSDBA",
-            "senha": "zyAhhI2tUSdIaG9d0Pa0",
+            "ip": conexao.host,
+            "banco": conexao.database_path,
+            "porta": porta,
+            "usuario": conexao.usuario,
+            "senha": conexao.senha,
             "sql": "SELECT LOGIN, PSWD, NAME AS NOME, EMAIL, ACTIVE AS ATIVO, PRIV_ADMIN FROM SEC_USERS"
         }
 
         try:
-            response = requests.post("https://desenvapiversatil.com.br/firebird-query", json=config, timeout=10)
-            response.raise_for_status()
+            response = requests.post(
+                "https://desenvapiversatil.com.br/firebird-query",
+                json=config,
+                timeout=10
+            )
+            response.raise_for_status()  # Lança exceção para status 4xx/5xx
+            
             dados = response.json()
-            lista_usuarios = dados if isinstance(dados, list) else dados.get("data", [])
-
-            return JsonResponse({'status': 'ok', 'usuarios': lista_usuarios})
+            
+            # Tratamento seguro da resposta
+            if isinstance(dados, list):
+                lista_usuarios = dados
+            else:
+                lista_usuarios = dados.get("data", []) or dados.get("resultado", [])
+            
+            return JsonResponse({
+                'status': 'ok',
+                'usuarios': lista_usuarios
+            })
         
+        except requests.exceptions.RequestException as e:
+            return JsonResponse({
+                'status': 'erro',
+                'mensagem': f"Erro na conexão com o banco: {str(e)}",
+                'usuarios': []
+            }, status=502)
+            
         except Exception as e:
-            return JsonResponse({'status': 'erro', 'mensagem': str(e), 'usuarios': []}, status=502)
+            return JsonResponse({
+                'status': 'erro',
+                'mensagem': f"Erro interno: {str(e)}",
+                'usuarios': []
+            }, status=500)
 
     else:
+        # Parte não-AJAX mantida igual
         from cliente_app.models import Cliente
         cliente = Cliente.objects.get(id=cliente_id)
         return render(request, "admin/usuarios_cliente.html", {"cliente": cliente})
-
 # =========================
 # Usuários API Clientes
 # =========================
-
 def api_usuarios_firebird(request, cliente_id):
     if request.META.get("HTTP_X_REQUESTED_WITH") != "XMLHttpRequest":
         return JsonResponse({'erro': 'Requisição inválida'}, status=400)
     
+    try:
+        # Busca a conexão no banco de dados usando o cliente_id
+        conexao = Conexao.objects.get(cliente_id=cliente_id)
+    except Conexao.DoesNotExist:
+        return JsonResponse({
+            "status": "erro",
+            "mensagem": f"Conexão não encontrada para o cliente ID {cliente_id}"
+        }, status=404)
+
+    # Tratamento seguro da porta
+    try:
+        porta = int(conexao.port_local)
+    except (TypeError, ValueError):
+        porta = 3050  # Fallback para porta padrão do Firebird
+
+    # Configuração base dinâmica
     config_base = {
-        "ip": "db-junior-repl-3.sp1.br.saveincloud.net.br",
-        "banco": "/opt/firebird/data/dados-junior-remoto.fdb",
-        "porta": 16475,
-        "usuario": "SYSDBA",
-        "senha": "zyAhhI2tUSdIaG9d0Pa0",
+        "ip": conexao.host,
+        "banco": conexao.database_path,
+        "porta": porta,
+        "usuario": conexao.usuario,
+        "senha": conexao.senha,
     }
 
     try:
@@ -313,41 +390,62 @@ def api_usuarios_firebird(request, cliente_id):
         resp = requests.post(
             "https://desenvapiversatil.com.br/firebird-query",
             json=config_usuarios,
-            timeout=10
+            timeout=15
         )
         resp.raise_for_status()
         data = resp.json()
-        usuarios = data if isinstance(data, list) else data.get("data", [])
+        usuarios = data if isinstance(data, list) else data.get("data", []) or data.get("resultado", [])
 
         # 2️⃣ Para cada usuário, buscar o GROUP_ID
         for user in usuarios:
-            login = user["LOGIN"]
+            login = user.get("LOGIN")
+            if not login:
+                user["GROUP_ID"] = None
+                continue
 
+            # Usando parâmetros seguros para evitar SQL Injection
             config_group = {
                 **config_base,
-                "sql": f"SELECT GROUP_ID FROM SEC_USERS_GROUPS WHERE LOGIN = '{login}'"
+                "sql": "SELECT GROUP_ID FROM SEC_USERS_GROUPS WHERE LOGIN = ?",
+                "params": [login]  # Usando parâmetro seguro
             }
 
             try:
                 group_resp = requests.post(
                     "https://desenvapiversatil.com.br/firebird-query",
                     json=config_group,
-                    timeout=5
+                    timeout=8
                 )
                 group_resp.raise_for_status()
                 group_data = group_resp.json()
 
-                if isinstance(group_data, list) and len(group_data) > 0:
-                    user["GROUP_ID"] = group_data[0].get("GROUP_ID")
+                # Tratamento seguro da resposta
+                grupos = group_data if isinstance(group_data, list) else group_data.get("data", []) or group_data.get("resultado", [])
+                
+                if grupos and isinstance(grupos, list) and len(grupos) > 0:
+                    user["GROUP_ID"] = grupos[0].get("GROUP_ID")
                 else:
                     user["GROUP_ID"] = None
+                    
             except Exception as group_err:
-                user["GROUP_ID"] = None # Silencia erro individual
+                # Log opcional: logger.error(f"Erro ao buscar grupo para {login}: {str(group_err)}")
+                user["GROUP_ID"] = None
 
         return JsonResponse({'status': 'ok', 'usuarios': usuarios})
     
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({
+            'status': 'erro', 
+            'mensagem': f"Erro na conexão com o banco de dados: {str(e)}",
+            'usuarios': []
+        }, status=502)
+        
     except Exception as e:
-        return JsonResponse({'status': 'erro', 'mensagem': str(e), 'usuarios': []}, status=502)
+        return JsonResponse({
+            'status': 'erro', 
+            'mensagem': f"Erro interno: {str(e)}",
+            'usuarios': []
+        }, status=500)
 
 # =========================
 # DASHBOARD
@@ -526,6 +624,9 @@ def api_aplicacoes_ativas(request, cliente_id):
 # =========================
 # API Para Cadastro de Grupos
 # =========================
+def rota_falsa(request):
+    return JsonResponse({"erro": "rota fictícia criada para evitar NoReverseMatch"})
+
 @csrf_exempt
 def grupos_cliente_api(request, cliente_id):
     """
@@ -534,69 +635,145 @@ def grupos_cliente_api(request, cliente_id):
 
     # 1. Se for requisição AJAX, retorna JSON com os grupos
     if request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest":
+        try:
+            # Buscar dados de conexão do banco de dados
+            conexao = Conexao.objects.get(cliente_id=cliente_id)
+        except Conexao.DoesNotExist:
+            return JsonResponse({
+                "status": "erro",
+                "mensagem": f"Conexão não encontrada para o cliente ID {cliente_id}"
+            }, status=404)
+
+        # Tratamento seguro da porta
+        try:
+            porta = int(conexao.port_local)
+        except (TypeError, ValueError):
+            porta = 3050  # Fallback para porta padrão do Firebird
+
+        # Montar configuração dinâmica
         config = {
-            "ip": "db-junior-repl-3.sp1.br.saveincloud.net.br",
-            "banco": "/opt/firebird/data/dados-junior-remoto.fdb",
-            "porta": 16475,
-            "usuario": "SYSDBA",
-            "senha": "zyAhhI2tUSdIaG9d0Pa0",
+            "ip": conexao.host,
+            "banco": conexao.database_path,
+            "porta": porta,
+            "usuario": conexao.usuario,
+            "senha": conexao.senha,
             "sql": "SELECT GROUP_ID, DESCRIPTION FROM SEC_GROUPS ORDER BY GROUP_ID"
         }
 
         try:
-            print(f"🔍 Cliente ID: {cliente_id} — Enviando requisição para API externa:", config)
-            resp = requests.post("https://desenvapiversatil.com.br/firebird-query", json=config, timeout=10)
-            print("✅ Resposta bruta:", resp.text)
+            print(f"🔍 Cliente ID: {cliente_id} — Enviando requisição para API externa:", {
+                "ip": config["ip"],
+                "banco": config["banco"],
+                "porta": config["porta"],
+                "usuario": config["usuario"],
+                # Não mostrar senha por segurança
+            })
+            
+            resp = requests.post(
+                "https://desenvapiversatil.com.br/firebird-query",
+                json=config,
+                timeout=15
+            )
+            
+            print("✅ Resposta bruta:", resp.text[:200])  # Mostrar apenas parte inicial
             resp.raise_for_status()
 
             dados = resp.json()
+            # Tratamento seguro da resposta
             grupos = dados if isinstance(dados, list) else dados.get("data", []) or dados.get("resultado", [])
-
+            
             return JsonResponse({"status": "ok", "grupos": grupos})
 
         except requests.exceptions.RequestException as e:
-            print("❌ Erro na API externa:", e)
+            print(f"❌ Erro na API externa para cliente {cliente_id}:", e)
             return JsonResponse({
                 "status": "erro",
-                "mensagem": f"Erro na API externa: {str(e)}",
-                "dados_enviados": config
+                "mensagem": f"Erro na conexão com o banco de dados: {str(e)}",
+                "cliente_id": cliente_id
             }, status=502)
+            
+        except Exception as e:
+            print(f"❌ Erro interno para cliente {cliente_id}:", e)
+            return JsonResponse({
+                "status": "erro",
+                "mensagem": f"Erro no processamento: {str(e)}",
+                "cliente_id": cliente_id
+            }, status=500)
 
     # 2. Se não for AJAX, renderiza a tela HTML com o ID do cliente
     return render(request, "admin/grupos_cliente.html", {"cliente_id": cliente_id})
-
-def rota_falsa(request):
-    return JsonResponse({"erro": "rota fictícia criada para evitar NoReverseMatch"})
-
 # =========================
 # API De Insert de Grupo
 # =========================
-
-@csrf_exempt  # mantenha só se estiver testando via ferramentas externas ou sem CSRF
+@csrf_exempt
 def cadastrar_grupo(request, cliente_id):
-    if request.method == 'POST':
-        group_id = request.POST.get('group_id')
-        description = request.POST.get('description')
-
-        payload = {
-            "ip": "db-junior-repl-3.sp1.br.saveincloud.net.br",
-            "banco": "/opt/firebird/data/dados-junior-remoto.fdb",
-            "porta": 16475,
-            "usuario": "SYSDBA",
-            "senha": "zyAhhI2tUSdIaG9d0Pa0",
-            "sql": f"INSERT INTO SEC_GROUPS (GROUP_ID, DESCRIPTION) VALUES ({group_id}, '{description}')"
-        }
-
-        try:
-            resp = requests.post("https://desenvapiversatil.com.br/firebird-query", json=payload, timeout=10)
-            resp.raise_for_status()
-            print("✅ Grupo inserido com sucesso!")
-        except requests.exceptions.RequestException as e:
-            print("❌ Erro ao inserir grupo:", e)
-            # Aqui pode adicionar mensagem flash, log, etc.
-
-        # Redireciona para a página que mostra os grupos do cliente
+    if request.method != 'POST':
         return redirect("detalhe_cliente", cliente_id=cliente_id)
+    
+    try:
+        # Buscar dados de conexão do banco de dados
+        conexao = Conexao.objects.get(cliente_id=cliente_id)
+    except Conexao.DoesNotExist:
+        messages.error(request, f"Conexão não encontrada para o cliente ID {cliente_id}")
+        return redirect("detalhe_cliente", cliente_id=cliente_id)
+    
+    # Obter dados do formulário
+    group_id    = request.POST.get('group_id')
+    description = request.POST.get('description')
 
-    # Se não for POST, redireciona pra mesma página
+    # Validação básica dos dados
+    if not group_id or not description:
+        messages.error(request, "Group ID e Description são obrigatórios.")
+        return redirect("detalhe_cliente", cliente_id=cliente_id)
+    
+    # Tratamento seguro da porta
+    try:
+        porta = int(conexao.port_local)
+    except (TypeError, ValueError):
+        porta = 3050 # Fallback para porta padrão do Firebird
+
+    # Construção segura da query SQL (evitando SQL Injection)
+    try:
+        # Convertendo group_id para número (validação adicional)
+        group_id_int = int(group_id)
+
+        # Escapando aspas simples na descrição
+        description_safe = description.replace("'", "''")
+
+        sql = f"INSERT INTO SEC_GROUPS (GROUP_ID, DESCRIPTION) VALUES ({group_id_int}, '{description_safe}')"
+    except ValueError:
+        messages.error(request, "Group ID deve ser um número inteiro.")
+        return redirect("detalhe_cliente", cliente_id=cliente_id)
+    
+    # Montar payload dinâmico
+    payload = {
+        "ip": conexao.host,
+        "banco": conexao.database_path,
+        "porta": porta,
+        "usuario": conexao.usuario,
+        "senha": conexao.senha,
+        "sql": sql
+    }
+
+    try:
+        resp = requests.post(
+            "https://desenvapiversatil.com.br/firebird-query",
+            json=payload,
+            timeout=15
+        )
+
+        # Verificar se a inserção bem sucedida
+        if resp.status_code == 200:
+            messages.success(request, "✅ Grupo cadastrado com sucesso!")
+        else:
+            messages.warning(request, "⚠️ Grupo cadastrado, mas com resposta inesperada do servidor")
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Erro ao inserir grupo para cliente {cliente_id}:", e)
+        messages.error(request, f"❌ Erro ao cadastrar grupo: {str(e)}")
+
+    except Exception as e:
+        print(f"❌ Erro interno ao inserir grupo para cliente {cliente_id}:", e)
+        messages.error(request, f"❌ Erro interno: {str(e)}")
+
     return redirect("detalhe_cliente", cliente_id=cliente_id)
