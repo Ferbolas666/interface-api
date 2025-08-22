@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>🔧 Página Customizada</h1>
+
+  <table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>CNPJ</th>
+            <th>Ação</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cliente in clientes %}
+        <tr>
+            <td>{{ cliente.nome }}</td>
+            <td>{{ cliente.cnpj }}</td>
+            <td>
+                <!-- Botão lateral, pode ser um link para qualquer lugar -->
+                 <a href="{% url 'detalhe_cliente' cliente.id %}" class="btn btn-sm btn-info">🔍 Ativa Plano</a>
+
+                 <!-- Botão para cadastrar usuários -->
+                  <a href="{% url 'usuarios_cliente' cliente.id %}" class="btn btn-warning btn-sm">👤 Gerenciar Usuários</a>
+
+                <!-- Botão grupo Clientes -->
+                 <a href="{% url 'grupos_cliente_api' cliente.id %}" class="btn btn-success btn-sm">👥 Gerenciar Grupos</a>
+
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3">Nenhum cliente encontrado.</td></tr>
+        {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<h4 class="mb-3">👥 Lista de Usuários Atuais</h4>
+<div id="gridUsuarios" class="table-responsive mb-5">
+    <table class="table table-bordered table-hover align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>👤 Login</th>
+                <th>📛 Nome</th>
+                <th>📧 Email</th>
+                <th>✅ Ativo</th>
+                <th>🔑 Admin</th>
+            </tr>
+        </thead>
+        <tbody id="usuariosBody">
+            <tr><td colspan="5">⏳ Carregando...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<h2 class="mb-4">👤 Usuários do Cliente: {{ cliente.nome }}</h2>
+
+<form id="formCadastroUsuario" class="row g-3">
+    <div class="col-md-4">
+        <label class="form-label">👤 Login</label>
+        <input type="text" name="login" class="form-control" required>
+    </div>
+
+    <div class="col-md-4 position-relative">
+        <label class="form-label">🔐 Senha</label>
+        <div class="input-group">
+            <input type="password" name="senha" id="senha" class="form-control" required>
+            <button class="btn btn-outline-secondary" type="button" onclick="toggleSenha('senha')">👁</button>
+        </div>
+    </div>
+
+    <div class="col-md-4 position-relative">
+        <label class="form-label">🔁 Confirmar Senha</label>
+        <div class="input-group">
+            <input type="password" name="confirmar_senha" id="confirmar_senha" class="form-control" required>
+            <button class="btn btn-outline-secondary" type="button" onclick="toggleSenha('confirmar_senha')">👁</button>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">📛 Nome</label>
+        <input type="text" name="nome" class="form-control" required>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">📧 Email</label>
+        <input type="email" name="email" class="form-control">
+    </div>
+
+    <div class="col-md-3 d-flex align-items-center">
+        <div class="form-check mt-4">
+            <input class="form-check-input" type="checkbox" name="ativo" id="ativo" checked>
+            <label class="form-check-label" for="ativo">✅ Ativo</label>
+        </div>
+    </div>
+
+    <div class="col-md-3 d-flex align-items-center">
+        <div class="form-check mt-4">
+            <input class="form-check-input" type="checkbox" name="admin" id="admin">
+            <label class="form-check-label" for="admin">🔑 Admin</label>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">👥 Grupo de Permissão</label>
+        <select id="grupoId" name="grupo_id" class="form-select" required>
+            <option value="">-- Selecione o grupo --</option>
+            <!-- Opções serão preenchida via JavaScript -->
+        </select>
+    </div>
+
+    <div class="col-12">
+        <button type="submit" class="btn btn-success rounded-pill w-100">💾 Cadastrar Usuário</button>
+    </div>
+</form>
+
+<input type="hidden" id="clienteId" value="{{ cliente.id }}">
+
+<script>
+    // Alternar visibilidade da senha
+    function toggleSenha(id) {
+        const campo = document.getElementById(id);
+        campo.type = campo.type === "password" ? "text" : "password";
+    }
+
+    // Carrega os usuários do cliente
+    function carregarUsuarios() {
+        const clienteId = document.getElementById("clienteId").value;
+
+        fetch(`/api/firebird_usuarios/${clienteId}/`, {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+        .then(resp => {
+            if (!resp.ok) throw new Error(`Erro HTTP: ${resp.status}`);
+            return resp.json();
+        })
+        .then(data => {
+            const tbody = document.getElementById("usuariosBody");
+            tbody.innerHTML = "";
+
+            if (data.status !== "ok" || !Array.isArray(data.usuarios)) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-danger">❌ Erro ao buscar usuários.</td></tr>`;
+                return;
+            }
+
+            if (data.usuarios.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5">⚠️ Nenhum usuário encontrado.</td></tr>`;
+                return;
+            }
+
+            data.usuarios.forEach(u => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${u.LOGIN}</td>
+                        <td>${u.NOME}</td>
+                        <td>${u.EMAIL || "N/A"}</td>
+                        <td>${u.ATIVO ? "✅" : "❌"}</td>
+                        <td>${u.ADMIN ? "🔑" : "❌"}</td>
+                    </tr>
+                `;
+            });
+        })
+        .catch(err => {
+            console.error("Erro ao buscar usuários:", err);
+            document.getElementById("usuariosBody").innerHTML = `
+                <tr><td colspan="5">❌ Erro: ${err.message}</td></tr>`;
+        });
+    }
+
+    // Carrega os grupos de permissão e preenche o select
+    function carregarGrupos() {
+        const select = document.getElementById("grupoId");
+        if (!select) {
+            console.warn("❌ Campo #grupoId não encontrado no HTML.");
+            return;
+        }
+
+        const clienteId = document.getElementById("clienteId").value;
+
+        // REVERTIDO para POST com JSON no corpo (conforme sua view)
+        fetch("/api/grupos_disponiveis/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: JSON.stringify({ cliente_id: clienteId })
+        })
+        .then(resp => {
+            if (!resp.ok) throw new Error(`Erro HTTP: ${resp.status}`);
+            return resp.json();
+        })
+        .then(data => {
+            select.innerHTML = '<option value="">-- Selecione o grupo --</option>';
+
+            if (data.status !== "ok" || !Array.isArray(data.grupos)) {
+                select.innerHTML += '<option disabled>❌ Erro ao carregar grupos</option>';
+                return;
+            }
+
+            data.grupos.forEach(grupo => {
+                select.innerHTML += `<option value="${grupo.GROUP_ID}">${grupo.DESCRIPTION}</option>`;
+            });
+        })
+        .catch(err => {
+            select.innerHTML = '<option disabled>Erro ao carregar grupos</option>';
+            console.error("❌ Erro ao carregar grupos:", err);
+        });
+    }
+
+    // Cadastro de usuário
+    document.addEventListener("DOMContentLoaded", function () {
+        carregarUsuarios(); // Carrega tabela
+        carregarGrupos();   // Carrega grupos no select
+
+        document.getElementById("formCadastroUsuario").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const senha = this.senha.value;
+            const confirmar = this.confirmar_senha.value;
+            const grupoId = document.getElementById("grupoId").value;
+
+            if (senha !== confirmar) {
+                alert("❌ As senhas não coincidem!");
+                return;
+            }
+
+            if (!grupoId) {
+                alert("❌ Selecione um grupo!");
+                return;
+            }
+
+            const dados = {
+                cliente_id: document.getElementById("clienteId").value,
+                login: this.login.value,
+                senha: senha,
+                nome: this.nome.value,
+                email: this.email.value,
+                grupo_id: grupoId,
+                ativo: this.ativo.checked,
+                admin: this.admin.checked
+            };
+
+            fetch("/api/cadastrar_usuario/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: JSON.stringify(dados)
+            })
+            .then(resp => {
+                console.log("📥 Status HTTP:", resp.status);
+                return resp.text(); // ← pega a resposta como texto bruto
+            })
+            .then(result => {
+                console.log("🧪 Resultado bruto da resposta:", result);
+                alert("🧪 RESPOSTA BRUTA:\n" + result);
+            })
+            .catch(error => {
+                console.error("❌ Erro na requisição:", error);
+                alert("❌ Erro inesperado: " + error.message);
+            });
+        });
+    });
+</script>
+
+{% endblock %}

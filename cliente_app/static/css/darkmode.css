@@ -1,0 +1,76 @@
+/* Aplica ao HTML e body principais */
+body, html {
+    background-color: #121212 !important;
+    color: #e0e0e0 !important;
+}
+
+/* Corrige fundo da dashboard do Jazzmin */
+.content, .content-wrapper, .main-footer, .main-header, .wrapper, .card {
+    background-color: #121212 !important;
+    color: #e0e0e0 !important;
+}
+
+/* Aplica a fundo dos widgets */
+.card, .box, .small-box, .info-box, .form-group, .form-control, .form-control:focus {
+    background-color: #1f1f2e !important;
+    color: #f0f0f0 !important;
+    border-color: #444 !important;
+}
+
+/* Side menu e topo */
+.main-sidebar, .main-header, .navbar {
+    background-color: #191923 !important;
+}
+
+/* Título dos cards */
+.card-header, .box-header {
+    background-color: #242436 !important;
+    color: #fff !important;
+    border-bottom: 1px solid #333;
+}
+
+/* Inputs em geral */
+input, select, textarea {
+    background-color: #2a2a3b !important;
+    color: #ffffff !important;
+    border: 1px solid #555 !important;
+    border-radius: 5px;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: #4ea1ff !important;
+    box-shadow: 0 0 0 2px rgba(78, 161, 255, 0.3);
+}
+
+/* Botões */
+.btn, .btn-primary {
+    background-color: #4ea1ff !important;
+    color: #fff !important;
+    border: none !important;
+}
+
+.btn:hover {
+    background-color: #367ddc !important;
+}
+
+/* Breadcrumb e título */
+.breadcrumb, .content-header h1, .page-title {
+    background-color: transparent !important;
+    color: #cccccc !important;
+}
+
+/* Ações recentes */
+.timeline, .timeline-item {
+    background-color: #1e1e2f !important;
+    color: #ccc !important;
+}
+
+/* Corrige ícones e ações */
+a, a:hover {
+    color: #7fb3ff !important;
+}
+
+select option {
+    background-color: #2a2a3b;
+    color: white;
+}

@@ -1,0 +1,14 @@
+:root {
+    --primary:   #121212;
+    --secondary: #1e1e1e;
+    --accent:    #ffffff;
+}
+
+body, .content, .main-header, .main-sidebar {
+    background-color: var(--primary) !important;
+    color: var(--accent) !important;
+}
+
+a, label, th, td, h1, h2, h3, h4, h5, h6 {
+    color: var(--accent) !important;
+}
