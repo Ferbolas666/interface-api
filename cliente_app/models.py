@@ -9,6 +9,7 @@ class Cliente(models.Model):
     cnpj  = models.CharField(max_length=20, unique=True)
     email = models.EmailField()
     ativo = models.BooleanField(default=True)
+    token  = models.CharField(max_length=255, blank=True, null=True, unique=True)  # novo campo
 
     def __str__(self):
         return self.nome

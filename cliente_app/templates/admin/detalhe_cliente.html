@@ -217,45 +217,46 @@ document.addEventListener('DOMContentLoaded', function () {
     keyboard: false
   });
 
-  // ===========================
-  // FETCH USUÁRIOS DO FIREBIRD
-  // ===========================
-  let usuariosFirebird = []; // Armazena os usuários globalmente
+// ===========================
+// FETCH USUÁRIOS DO FIREBIRD
+// ===========================
+let usuariosFirebird = []; // Armazena os usuários globalmente
 
-  fetch(`/api/firebird_usuarios/${clienteId}/`, {
-    headers: {
-      "X-Requested-With": "XMLHttpRequest"
-    }
-  })
-  .then(res => {
-    console.log("🌐 Status da API usuários:", res.status);
-    if (!res.ok) throw new Error("Erro ao buscar usuários.");
-    return res.json();
-  })
-  .then(data => {
-    if (data.status === "ok" && Array.isArray(data.usuarios)) {
-      console.log("👥 Usuários recebidos:", data.usuarios);
+fetch(`/interface/api/firebird_usuarios/${clienteId}/`, {
+  headers: {
+    "X-Requested-With": "XMLHttpRequest"
+  }
+})
+.then(res => {
+  console.log("🌐 Status da API usuários:", res.status);
+  if (!res.ok) throw new Error("Erro ao buscar usuários.");
+  return res.json();
+})
+.then(data => {
+  if (data.status === "ok" && Array.isArray(data.usuarios)) {
+    console.log("👥 Usuários recebidos:", data.usuarios);
 
-      usuariosFirebird = data.usuarios; // Salva globalmente
+    usuariosFirebird = data.usuarios; // Salva globalmente
 
-      selectUsuarios.innerHTML = '<option value="">-- Escolha --</option>';
+    selectUsuarios.innerHTML = '<option value="">-- Escolha --</option>';
 
-      data.usuarios.forEach(u => {
-        const opt       = document.createElement("option");
-        opt.value       = u.LOGIN;
-        opt.textContent = `${u.LOGIN} = ${u.NOME}`;
-        selectUsuarios.appendChild(opt);
-      });
+    data.usuarios.forEach(u => {
+      const opt       = document.createElement("option");
+      opt.value       = u.LOGIN;
+      opt.textContent = `${u.LOGIN} = ${u.NOME}`;
+      selectUsuarios.appendChild(opt);
+    });
 
-      console.log("✅ Select preenchido com usuários.");
-    } else {
-      console.warn("⚠️ Nenhum usuário retornado pela API.");
-    }
-  })
-  .catch(err => {
-    console.error("❌ Erro ao carregar usuários do Firebird:", err);
-    selectUsuarios.innerHTML = '<option value"">Erro ao carregar usuários</option>';
-  });
+    console.log("✅ Select preenchido com usuários.");
+  } else {
+    console.warn("⚠️ Nenhum usuário retornado pela API.");
+  }
+})
+.catch(err => {
+  console.error("❌ Erro ao carregar usuários do Firebird:", err);
+  // 🔧 CORRIGIDO AQUI:
+  selectUsuarios.innerHTML = '<option value="">Erro ao carregar usuários</option>';
+});
 
   // ===========================
   // AO SELECIONAR UM USUÁRIO
@@ -358,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
     modalTitle.textContent = 'Editar Subprojetos - ' + projetoNome;
     checkboxContainer.innerHTML = 'Carregando...';
 
-    fetch(`/api/subprojetos/${projetoId}/?cliente_id=${clienteId}`, {
+    fetch(`/interface/api/subprojetos/${projetoId}/?cliente_id=${clienteId}`, {
       credentials: 'same-origin'
     })
       .then(response => {
@@ -443,7 +444,7 @@ window.salvarTudo = function () {
     return;
   }
 
-  fetch(`/api/aplicacoes_ativas/${clienteId}/`)
+  fetch(`/interface/api/aplicacoes_ativas/${clienteId}/`)
     .then(response => response.json())
     .then(aplicacoes => {
       console.log("📥 Aplicações ativas:", aplicacoes);
@@ -456,30 +457,30 @@ window.salvarTudo = function () {
         switch (app.projeto_id) {
           case 1:
             codProjeto  = 1100;
-            nomeProjeto = 'dashboard';
+            nomeProjeto = 'Dashboard';
             break;
           case 2:
             codProjeto  = 947;
-            nomeProjeto = 'mobile';
+            nomeProjeto = 'MOBILE';
             break;
           case 3:
           case 4:
           case 5:
           case 8:
             codProjeto  = 1050;
-            nomeProjeto = 'restaurant';
+            nomeProjeto = 'RESTAURANTE';
             break;
           case 6:
             codProjeto  = 946;
-            nomeProjeto = 'retaguarda';
+            nomeProjeto = 'RETAGUARDA';
             break;
           case 9:
             codProjeto  = 1000;
-            nomeProjeto = 'relatorio';
+            nomeProjeto = 'RELATORIO';
             break;
           case 10:
             codProjeto  = 1150;
-            nomeProjeto = 'estoque';
+            nomeProjeto = 'ESTOQUE';
             break;
           default:
             codProjeto  = 999;
@@ -507,7 +508,7 @@ window.salvarTudo = function () {
 
       console.log("📤 Enviando inserts:", inserts);
 
-      return fetch('/api/inserir_aplicacoes/', {
+      return fetch('/interface/api/inserir_aplicacoes/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

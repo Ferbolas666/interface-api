@@ -7,6 +7,10 @@ import unicodedata
 from django.views.decorators.csrf import csrf_exempt
 from django.core.serializers import serialize
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe  # Para marcar strings como HTML seguro
+
 from django.db import connection
 import logging
 # from weasyprint import HTML
@@ -388,7 +392,7 @@ def api_usuarios_firebird(request, cliente_id):
         }
 
         resp = requests.post(
-            "https://desenvapiversatil.com.br/firebird-query",
+            "https://apiversatil.com.br/firebird-query",
             json=config_usuarios,
             timeout=15
         )
@@ -412,7 +416,7 @@ def api_usuarios_firebird(request, cliente_id):
 
             try:
                 group_resp = requests.post(
-                    "https://desenvapiversatil.com.br/firebird-query",
+                    "https://apiversatil.com.br/firebird-query",
                     json=config_group,
                     timeout=8
                 )

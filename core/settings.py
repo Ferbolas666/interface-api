@@ -25,7 +25,19 @@ SECRET_KEY = 'django-insecure-!*5o)i62!+*2a_d&%nzlq$@-(x-n=1$+r3s-ln@4j=e8j9@c!f
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+CSRF_TRUSTED_ORIGINS = [
+    'https://apiversatil.com.br',
+    'https://www.apiversatil.com.br',
+]
+
+# Aceita os domínios corretos
+ALLOWED_HOSTS = [
+    'apiversatil.com.br',
+    'www.apiversatil.com.br',
+    'localhost',
+    '127.0.0.1',
+    'interface-django'
+]
 
 # Application definition
 

@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     libpangocairo-1.0-0 \
     libjpeg-dev \
     libxml2 \
-    libgdk-pixbuf2.0-dev \
+    libgdk-pixbuf-xlib-2.0-dev \
     libxslt1-dev \
     libssl-dev \
     libglib2.0-0 \
